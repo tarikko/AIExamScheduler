@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intelligent University Exam Scheduling System</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f1d2;
+      --panel: #ffecb3;
+      --panel-strong: #ffd966;
+      --accent: #ff5e5b;
+      --deep: #772953;
+      --grid-line: #ddb347;
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #ffe27a, #f5d494 50%, #e7c18d 100%);
+      color: #2b1f17;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header {
+      background: var(--panel);
+      border: 3px dashed var(--accent);
+      padding: 16px;
+      border-radius: 18px;
+      box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.12);
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      color: var(--deep);
+    }
+
+    header p {
+      margin: 6px 0 0;
+      font-weight: bold;
+    }
+
+    section {
+      background: var(--panel-strong);
+      padding: 18px;
+      border-radius: 12px;
+      border: 2px solid var(--grid-line);
+      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    h2,
+    h3 {
+      margin-top: 0;
+      color: #1a0c35;
+      text-transform: uppercase;
+      font-size: 1.2rem;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .data-card {
+      border: 2px solid var(--accent);
+      padding: 12px;
+      border-radius: 10px;
+      background: #ffffffdd;
+    }
+
+    .data-card strong {
+      display: block;
+      font-size: 1.1rem;
+      color: var(--deep);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .algo-btn {
+      border: 2px solid var(--deep);
+      background: #fff;
+      font-size: 1rem;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+      font-weight: bold;
+    }
+
+    .algo-btn.active,
+    .algo-btn:hover {
+      background: var(--accent);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    #schedule-results {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .legend {
+      margin: 4px 0;
+      padding: 8px;
+      background: #fff2bb;
+      border-radius: 8px;
+      border: 1px dashed #b36b00;
+    }
+
+    .grid-header,
+    .grid-row {
+      display: grid;
+      grid-template-columns: 150px repeat(auto-fill, minmax(120px, 1fr));
+      border-bottom: 2px solid var(--grid-line);
+    }
+
+    .grid-row {
+      border-bottom: 1px dashed var(--grid-line);
+    }
+
+    .grid-cell {
+      padding: 8px;
+      border-right: 1px dotted var(--grid-line);
+    }
+
+    .grid-cell:last-child {
+      border-right: none;
+    }
+
+    .slot-label {
+      font-weight: bold;
+    }
+
+    .heatmap {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .heat-cell {
+      width: 110px;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .heat-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      margin-top: 6px;
+      background: linear-gradient(90deg, #75c964, #ffcc00, #ff5e5b);
+    }
+
+    .notes {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .note-card {
+      flex: 1;
+      min-width: 280px;
+      background: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #802e91;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border: 2px solid var(--deep);
+      border-radius: 14px;
+      padding: 10px;
+      background: #fffdf0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    #master-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: inherit;
+    }
+
+    #master-grid th,
+    #master-grid td {
+      border: 1px solid var(--grid-line);
+      padding: 10px;
+      text-align: center;
+    }
+
+    #master-grid th {
+      background: #ffe9a1;
+      font-weight: bold;
+    }
+
+    #master-grid th:first-child,
+    #master-grid td:first-child {
+      text-align: left;
+      font-weight: bold;
+    }
+
+    ul {
+      margin: 4px 0 0 18px;
+    }
+
+    @media (max-width: 720px) {
+      .grid-header,
+      .grid-row {
+        grid-template-columns: 120px repeat(auto-fill, minmax(100px, 1fr));
+      }
+
+      body {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Intelligent University Exam Scheduling</h1>
+      <p>Prototype timetable explorer inspired by ENSIA and Toronto benchmarks</p>
+    </header>
+
+    <section>
+      <h2>Data Snapshot</h2>
+      <div class="data-grid" id="data-overview"></div>
+      <div class="legend">Fake data lives in data/fake-data.json; no database, but the same structures fuel every strategy.</div>
+    </section>
+
+    <section>
+      <h2>Strategy Lab</h2>
+      <div class="controls" id="strategy-controls"></div>
+      <div id="algo-note" class="legend"></div>
+    </section>
+
+    <section id="schedule-wrapper">
+      <h2>Live Schedule</h2>
+      <div id="schedule-results"></div>
+      <div class="legend" id="score-note"></div>
+    </section>
+
+    <section>
+      <h2>Master Schedule Grid</h2>
+      <div class="table-wrapper">
+        <table id="master-grid"></table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Student Conflict Heatmap</h2>
+      <div id="heatmap" class="heatmap"></div>
+    </section>
+
+    <section>
+      <script src="js/app.js" defer></script>
+    }
+
+    function isSlotAvailable(courseCode, slot, room, assignments, data) {
+      for (const assigned of assignments) {
+        if (assigned.slot.id === slot.id && assigned.room.name === room.name) {
+          return false; // Room busy
+        }
+        if (assigned.slot.id === slot.id) {
+          const conflict = data.students.some(student =>
+            student.courses.includes(courseCode) && student.courses.includes(assigned.course.code)
+          );
+          if (conflict) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function greedySchedule(data) {
+      const conflicts = buildConflicts(data);
+      const sortedCourses = [...data.courses].sort((a, b) => {
+        const delta = conflicts[b.code].size - conflicts[a.code].size;
+        return delta !== 0 ? delta : b.enrollment - a.enrollment;
+      });
+
+      const assigned = [];
+      sortedCourses.forEach(course => {
+        for (const slot of timeSlots) {
+          const candidate = data.rooms.find(room => room.capacity >= course.enrollment);
+          if (!candidate) continue;
+          for (const room of data.rooms) {
+            if (room.capacity < course.enrollment) continue;
+            if (isSlotAvailable(course.code, slot, room, assigned, data)) {
+              assigned.push({ course, slot, room });
+              return;
+            }
+          }
+        }
+      });
+      return assigned;
+    }
+
+    function cspSchedule(data) {
+      const conflicts = buildConflicts(data);
+      const domains = {};
+      data.courses.forEach(course => {
+        domains[course.code] = timeSlots.flatMap(slot =>
+          data.rooms.filter(room => room.capacity >= course.enrollment).map(room => ({ slot, room }))
+        );
+      });
+
+      function validAssignment(course, slot, room, partial) {
+        return partial.every(assigned => {
+          if (assigned.slot.id === slot.id && assigned.room.name === room.name) {
+            return false;
+          }
+          if (assigned.slot.id === slot.id) {
+            const conflictsWith = conflicts[course.code].has(assigned.course.code);
+            if (conflictsWith) return false;
+          }
+          return true;
+        });
+      }
+
+      function selectCourse(partial) {
+        const assigned = new Set(partial.map(entry => entry.course.code));
+        let candidate = null;
+        data.courses.forEach(course => {
+          if (assigned.has(course.code)) return;
+          const choices = domains[course.code].filter(choice =>
+            validAssignment(course, choice.slot, choice.room, partial)
+          );
+          if (!candidate || choices.length < candidate.choices.length) {
+            candidate = { course, choices };
+          }
+        });
+        return candidate;
+      }
+
+      function backtrack(partial) {
+        if (partial.length === data.courses.length) return partial;
+        const node = selectCourse(partial);
+        if (!node || !node.choices.length) return null;
+        for (const choice of node.choices) {
+          const next = backtrack([...partial, { course: node.course, slot: choice.slot, room: choice.room }]);
+          if (next) return next;
+        }
+        return null;
+      }
+
+      return backtrack([]) || [];
+    }
+
+    function gaSchedule(data) {
+      const populationSize = 40;
+      const generations = 90;
+      const rooms = data.rooms;
+      const combos = timeSlots.flatMap(slot => rooms.map(room => ({ slot, room })));
+
+      function randomIndividual() {
+        return data.courses.map(course => {
+          const domain = combos.filter(combo => combo.room.capacity >= course.enrollment);
+          return domain[Math.floor(Math.random() * domain.length)];
+        });
+      }
+
+      function computeFitness(individual) {
+        let hard = 0;
+        let soft = 0;
+        for (let i = 0; i < individual.length; i++) {
+          for (let j = i + 1; j < individual.length; j++) {
+            const courseA = individual[i];
+            const courseB = individual[j];
+            if (courseA.slot.id === courseB.slot.id) {
+              if (courseA.room.name === courseB.room.name) {
+                hard += 3;
+              }
+              const studentsConflict = data.students.some(student =>
+                student.courses.includes(data.courses[i].code) && student.courses.includes(data.courses[j].code)
+              );
+              if (studentsConflict) hard += 5;
+            }
+          }
+        }
+        // soft: encourage diversity (avoid consecutive slots)
+        const slotIndices = individual.map(assign => assign.slot.index);
+        slotIndices.forEach((slotIdx, idx) => {
+          if (slotIndices.includes(slotIdx + 1)) soft += 1;
+        });
+        return -(hard * 40 + soft * 2);
+      }
+
+      function crossover(parentA, parentB) {
+        const pivot = Math.floor(Math.random() * parentA.length);
+        return [
+          [...parentA.slice(0, pivot), ...parentB.slice(pivot)],
+          [...parentB.slice(0, pivot), ...parentA.slice(pivot)]
+        ];
+      }
+
+      let population = Array.from({ length: populationSize }, randomIndividual);
+      for (let generation = 0; generation < generations; generation++) {
+        population.sort((a, b) => computeFitness(b) - computeFitness(a));
+        if (Math.random() < 0.4) {
+          const [childA, childB] = crossover(population[0], population[1]);
+          population.splice(-2, 2, childA, childB);
+        }
+        if (Math.random() < 0.3) {
+          const idx = Math.floor(Math.random() * population.length);
+          population[idx] = randomIndividual();
+        }
+      }
+
+      const best = population.sort((a, b) => computeFitness(b) - computeFitness(a))[0];
+      return best.map((assignment, index) => ({ course: data.courses[index], slot: assignment.slot, room: assignment.room }));
+    }
+
+    function aStarSchedule(data) {
+      const conflicts = buildConflicts(data);
+      const rooms = data.rooms;
+      const domain = timeSlots.flatMap(slot => rooms.map(room => ({ slot, room })));
+
+      function heuristic(assignedCount) {
+        return (data.courses.length - assignedCount) * 3 + assignedCount;
+      }
+
+      const frontier = [
+        {
+          assignments: [],
+          f: heuristic(0)
+        }
+      ];
+
+      const maxSteps = 500;
+      let steps = 0;
+
+      while (frontier.length && steps < maxSteps) {
+        frontier.sort((a, b) => a.f - b.f);
+        const node = frontier.shift();
+        steps++;
+        if (node.assignments.length === data.courses.length) {
+          return node.assignments;
+        }
+
+        const nextCourse = data.courses[node.assignments.length];
+        const filtered = domain.filter(({ slot, room }) => room.capacity >= nextCourse.enrollment);
+
+        filtered.forEach(choice => {
+          const valid = node.assignments.every(assigned => {
+            if (assigned.slot.id === choice.slot.id && assigned.room.name === choice.room.name) {
+              return false;
+            }
+            if (assigned.slot.id === choice.slot.id && conflicts[nextCourse.code].has(assigned.course.code)) {
+              return false;
+            }
+            return true;
+          });
+          if (!valid) return;
+          const child = {
+            assignments: [...node.assignments, { course: nextCourse, slot: choice.slot, room: choice.room }]
+          };
+          child.f = child.assignments.length + heuristic(child.assignments.length);
+          frontier.push(child);
+        });
+      }
+
+      return frontier[0]?.assignments || [];
+    }
+
+    function renderSchedule(assignments, meta) {
+      const results = document.getElementById('schedule-results');
+      results.innerHTML = '';
+
+      const header = document.createElement('div');
+      header.innerHTML = `<strong>${meta.label}</strong> • ${meta.time.toFixed(1)}ms • Penalties ${meta.penalty}`;
+      results.appendChild(header);
+
+      assignments.forEach(slot => {
+        const row = document.createElement('div');
+        row.className = 'grid-row';
+        row.innerHTML = `
+          <div class="grid-cell slot-label">${slot.slot.label}</div>
+          <div class="grid-cell">${slot.course.code}</div>
+          <div class="grid-cell">${slot.course.name}</div>
+          <div class="grid-cell">${slot.room.name} (${slot.room.capacity} seats)</div>
+        `;
+        results.appendChild(row);
+      });
+
+      document.getElementById('score-note').textContent =
+        'Soft constrained students-in-a-row: ' + meta.softViolations;
+    }
+
+    function buildMasterGrid(assignments) {
+      const container = document.getElementById('master-grid');
+      container.innerHTML = '';
+
+      const header = document.createElement('div');
+      header.className = 'grid-header';
+      header.innerHTML = `<div class="grid-cell">Slot ↓ / Room →</div>` +
+        dataset.rooms.map(room => `<div class="grid-cell">${room.name}</div>`).join('');
+      container.appendChild(header);
+
+      timeSlots.forEach(slot => {
+        const row = document.createElement('div');
+        row.className = 'grid-row';
+        const cells = [
+          `<div class="grid-cell slot-label">${slot.label}</div>`,
+          ...dataset.rooms.map(room => {
+            const match = assignments.find(
+              assignment => assignment.slot.id === slot.id && assignment.room.name === room.name
+            );
+            const text = match ? `${match.course.code} (${match.course.enrollment})` : '—';
+            return `<div class="grid-cell">${text}</div>`;
+          })
+        ];
+        row.innerHTML = cells.join('');
+        container.appendChild(row);
+      });
+    }
+
+    function buildHeatmap(assignments) {
+      const container = document.getElementById('heatmap');
+      container.innerHTML = '';
+      const dayStress = {};
+      dataset.students.forEach(student => {
+        const assignedSlots = assignments
+          .filter(assignment => student.courses.includes(assignment.course.code))
+          .map(assignment => assignment.slot)
+          .sort((a, b) => a.index - b.index);
+        assignedSlots.forEach((slot, index) => {
+          const next = assignedSlots[index + 1];
+          if (next && next.day === slot.day && next.index === slot.index + 1) {
+            dayStress[slot.day] = (dayStress[slot.day] || 0) + 1;
+          }
+        });
+      });
+
+      Object.entries(dayStress).forEach(([day, count]) => {
+        const cell = document.createElement('div');
+        const intensity = Math.min(100, count * 12);
+        cell.className = 'heat-cell';
+        cell.style.background = `rgba(255, 94, 91, ${Math.min(0.9, intensity / 120)})`;
+        cell.innerHTML = `${day}<div class="heat-bar" style="opacity:${Math.min(1, intensity / 120)}"></div><small>${count} conflicts</small>`;
+        container.appendChild(cell);
+      });
+      if (!Object.keys(dayStress).length) {
+        container.innerHTML = '<p>No consecutive exam conflicts detected.</p>';
+      }
+    }
+
+    function assessPenalties(assignments) {
+      let hardViolations = 0;
+      let softViolations = 0;
+      const seen = new Set();
+      assignments.forEach(assignment => {
+        const key = `${assignment.slot.id}-${assignment.room.name}`;
+        if (seen.has(key)) hardViolations++;
+        seen.add(key);
+      });
+      dataset.students.forEach(student => {
+        const slots = assignments
+          .filter(assignment => student.courses.includes(assignment.course.code))
+          .map(assignment => assignment.slot.index)
+          .sort((a, b) => a - b);
+        for (let i = 0; i < slots.length - 1; i++) {
+          if (slots[i + 1] - slots[i] === 1) softViolations++;
+        }
+      });
+      return hardViolations * 50 + softViolations * 3;
+    }
+
+    function updateComparison(key, meta) {
+      if (!bestCompare[key] || bestCompare[key].penalty > meta.penalty) {
+        bestCompare[key] = meta;
+      }
+    }
+
+    async function init() {
+      dataset = await fetch('data/fake-data.json').then(res => res.json());
+      renderDataOverview(dataset);
+
+      const controlBar = document.getElementById('strategy-controls');
+      Object.entries(algorithms).forEach(([key, config], index) => {
+        const button = document.createElement('button');
+        button.className = 'algo-btn';
+        button.textContent = config.label;
+        button.addEventListener('click', () => runStrategy(key));
+        if (index === 0) button.classList.add('active');
+        controlBar.appendChild(button);
+      });
+
+      runStrategy('greedy');
+    }
+
+    function runStrategy(key) {
+      dataset &&
+        Array.from(document.querySelectorAll('.algo-btn')).forEach(btn => btn.classList.remove('active'));
+      const button = Array.from(document.querySelectorAll('.algo-btn')).find(btn => btn.textContent === algorithms[key].label);
+      button?.classList.add('active');
+
+      const start = performance.now();
+      const result = algorithms[key].fn(dataset);
+      const end = performance.now();
+      const penalty = assessPenalties(result);
+      const softViolations = penalty / 3;
+
+      document.getElementById('algo-note').textContent = algorithms[key].note;
+
+      renderSchedule(result, {
+        label: algorithms[key].label,
+        time: end - start,
+        penalty,
+        softViolations
+      });
+
+      buildMasterGrid(result);
+      buildHeatmap(result);
+      updateComparison(key, { label: algorithms[key].label, penalty, time: end - start });
+    }
+
+    init();
+  </script>
+</body>
+</html>

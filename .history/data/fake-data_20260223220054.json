@@ -1,0 +1,37 @@
+{
+  "courses": [
+    {"code": "CS101", "name": "Intro to Computer Science", "enrollment": 180},
+    {"code": "MATH202", "name": "Calculus II", "enrollment": 150},
+    {"code": "PHYS210", "name": "Physics of Waves", "enrollment": 120},
+    {"code": "ENG310", "name": "Technical Writing", "enrollment": 90},
+    {"code": "CS201", "name": "Data Structures", "enrollment": 160},
+    {"code": "CS330", "name": "Intro to AI", "enrollment": 85},
+    {"code": "BIO150", "name": "Cell Biology", "enrollment": 110},
+    {"code": "HIST205", "name": "North African History", "enrollment": 70},
+    {"code": "ECON101", "name": "Principles of Economics", "enrollment": 105}
+  ],
+  "students": [
+    {"id": "STU001", "courses": ["CS101", "MATH202", "ENG310"]},
+    {"id": "STU002", "courses": ["CS101", "PHYS210", "CS201"]},
+    {"id": "STU003", "courses": ["MATH202", "CS201", "BIO150", "ENG310"]},
+    {"id": "STU004", "courses": ["ECON101", "CS330", "HIST205"]},
+    {"id": "STU005", "courses": ["CS330", "CS101"]},
+    {"id": "STU006", "courses": ["CS330", "PHYS210", "BIO150"]},
+    {"id": "STU007", "courses": ["CS201", "MATH202", "CS101"]},
+    {"id": "STU008", "courses": ["HIST205", "ENG310"]},
+    {"id": "STU009", "courses": ["BIO150", "PHYS210"]},
+    {"id": "STU010", "courses": ["ECON101", "CS201"]},
+    {"id": "STU011", "courses": ["PHYS210", "CS330"]},
+    {"id": "STU012", "courses": ["CS101", "BIO150", "HIST205"]},
+    {"id": "STU013", "courses": ["MATH202", "ENG310"]},
+    {"id": "STU014", "courses": ["ECON101", "CS330", "CS201"]},
+    {"id": "STU015", "courses": ["HIST205", "BIO150"]}
+  ],
+  "rooms": [
+    {"name": "Amphi 1", "capacity": 220},
+    {"name": "Room 10", "capacity": 45},
+    {"name": "Lab B", "capacity": 80},
+    {"name": "Hall C", "capacity": 150},
+    {"name": "Amphi 2", "capacity": 200}
+  ]
+}

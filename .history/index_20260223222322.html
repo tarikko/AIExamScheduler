@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intelligent University Exam Scheduling System</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f1d2;
+      --panel: #ffecb3;
+      --panel-strong: #ffd966;
+      --accent: #ff5e5b;
+      --deep: #772953;
+      --grid-line: #ddb347;
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #ffe27a, #f5d494 50%, #e7c18d 100%);
+      color: #2b1f17;
+    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intelligent University Exam Scheduling System</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Intelligent University Exam Scheduling</h1>
+      <p>Prototype timetable explorer inspired by ENSIA and Toronto benchmarks</p>
+    </header>
+
+    <section>
+      <h2>Data Snapshot</h2>
+      <div class="data-grid" id="data-overview"></div>
+      <div class="legend">Fake data lives in data/fake-data.json; no database, but the same structures fuel every strategy.</div>
+    </section>
+
+    <section>
+      <h2>Strategy Lab</h2>
+      <div class="controls" id="strategy-controls"></div>
+      <div id="algo-note" class="legend"></div>
+    </section>
+
+    <section id="schedule-wrapper">
+      <h2>Live Schedule</h2>
+      <div id="schedule-results"></div>
+      <div class="legend" id="score-note"></div>
+    </section>
+
+    <section>
+      <h2>Master Schedule Grid</h2>
+      <div class="table-wrapper">
+        <table id="master-grid"></table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Student Conflict Heatmap</h2>
+      <div id="heatmap" class="heatmap"></div>
+    </section>
+
+    <section>
+      <h2>Analytical Notes</h2>
+      <div class="notes">
+        <div class="note-card">
+          <strong>Heuristics & Lessons</strong>
+          <ul>
+            <li>Greedy uses Largest Enrollment + Degree (Graph Coloring analogy).</li>
+            <li>CSP relies on MRV + Forward Checking to prune the most conflicting exams early.</li>
+            <li>Genetic Algorithm swaps weeks (subsets of slots) and favors penalty minimization.</li>
+            <li>A* treats each partial schedule as a state with heuristic = remaining exams × conflict density.</li>
+          </ul>
+        </div>
+        <div class="note-card">
+          <strong>Comparative Evaluation</strong>
+          <ul>
+            <li>All strategies stop when 0 hard violations are found; soft penalties drive room gaps.</li>
+            <li>Execution time listed in milliseconds; every strategy runs in the browser.</li>
+            <li>Visual grid highlights room utilization; empty cells mean unconstrained slots.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+    .algo-btn {
