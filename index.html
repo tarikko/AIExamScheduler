@@ -3,31 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Intelligent University Exam Scheduling System powered by Genetic Algorithms and Constraint Satisfaction — with real-time progress tracking and CSV upload." />
   <title>Intelligent University Exam Scheduling System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/neo-brutalism.css" />
 </head>
 <body>
   <div class="page">
     <header>
       <h1>Intelligent University Exam Scheduling</h1>
-      <p>Prototype timetable explorer inspired by ENSIA and Toronto benchmarks</p>
+      <p>Python-powered scheduling with Genetic Algorithms &amp; CSP — real-time progress streaming</p>
+      <div class="header-controls">
+        <div class="theme-toggle" id="theme-toggle" title="Toggle Neo-Brutalism theme">
+          <span>Neo-Brutalism</span>
+          <div class="toggle-track" id="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+      </div>
     </header>
 
     <section>
       <h2>Data Snapshot</h2>
       <div class="data-grid" id="data-overview"></div>
-      <div class="legend">Fake data lives in data/fake-data.json; no database, but the same structures fuel every strategy.</div>
+      <div class="legend">Data is loaded from the default dataset or your uploaded CSV. All algorithms run on the Python backend.</div>
+    </section>
+
+    <section>
+      <h2>Upload Custom Data</h2>
+      <div class="csv-upload-area" id="csv-upload-area">
+        <label class="csv-upload-label" for="csv-file-input">
+          📄 Upload CSV File
+        </label>
+        <input type="file" id="csv-file-input" accept=".csv" />
+        <div class="csv-filename" id="csv-filename"></div>
+      </div>
+      <div class="csv-help">
+        <strong>Expected CSV Structure:</strong><br/>
+        Each row represents one student-course enrollment. Required columns:<br/><br/>
+        <code>course_code</code> — Unique course identifier (e.g., CS101)<br/>
+        <code>course_name</code> — Human-readable course name<br/>
+        <code>enrollment</code> — Total enrollment count for the course<br/>
+        <code>student_id</code> — Student identifier (e.g., STU001)<br/>
+        <code>room_name</code> — Available room name (e.g., Amphi 1)<br/>
+        <code>room_capacity</code> — Room seating capacity<br/>
+        <code>timeslot</code> — <em>(Optional)</em> Date string in format <code>YYYY-MM-DD HH:MM</code><br/><br/>
+        <strong>Example row:</strong> <code>CS101,Intro to CS,180,STU001,Amphi 1,220,2026-06-10 09:00</code>
+      </div>
     </section>
 
     <section>
       <h2>Strategy Lab</h2>
       <div class="controls" id="strategy-controls"></div>
       <div id="algo-note" class="legend"></div>
-      <div id="progress-container" style="display: none; margin-top: 10px;">
-        <div style="font-weight: bold; margin-bottom: 4px;">Computing Schedule...</div>
-        <div style="width: 100%; background: #eee; border: 1px solid var(--grid-line); height: 20px; border-radius: 10px; overflow: hidden;">
-          <div id="progress-bar" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.2s;"></div>
+      <div id="progress-container" style="display: none;">
+        <div class="progress-label">Computing Schedule...</div>
+        <div class="progress-track">
+          <div id="progress-bar"></div>
         </div>
+        <div id="progress-message"></div>
       </div>
     </section>
 
@@ -53,20 +90,21 @@
       <h2>Analytical Notes</h2>
       <div class="notes">
         <div class="note-card">
-          <strong>Heuristics & Lessons</strong>
+          <strong>Heuristics &amp; Lessons</strong>
           <ul>
-            <li>Greedy uses Largest Enrollment + Degree (Graph Coloring analogy).</li>
-            <li>CSP relies on MRV + Forward Checking to prune the most conflicting exams early.</li>
-            <li>Genetic Algorithm swaps weeks (subsets of slots) and favors penalty minimization.</li>
-            <li>A* treats each partial schedule as a state with heuristic = remaining exams × conflict density.</li>
+            <li>Genetic Algorithm evolves populations with roulette-wheel selection + elitism.</li>
+            <li>CSP uses MRV + Forward Checking to prune the most conflicting exams early.</li>
+            <li>Both algorithms run on the Python FastAPI backend with real-time SSE progress.</li>
+            <li>Fitness rewards efficient room allocation and penalizes late/consecutive exams.</li>
           </ul>
         </div>
         <div class="note-card">
           <strong>Comparative Evaluation</strong>
           <ul>
-            <li>All strategies stop when 0 hard violations are found; soft penalties drive room gaps.</li>
-            <li>Execution time listed in milliseconds; every strategy runs in the browser.</li>
+            <li>All strategies stop when hard constraints (room conflicts, student overlaps) are resolved.</li>
+            <li>Soft penalties drive quality: consecutive same-day exams and room utilization efficiency.</li>
             <li>Visual grid highlights room utilization; empty cells mean unconstrained slots.</li>
+            <li>Upload your own CSV data to test with real-world exam schedules.</li>
           </ul>
         </div>
       </div>

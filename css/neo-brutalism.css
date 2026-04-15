@@ -1,0 +1,350 @@
+/*
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  NEO-BRUTALISM THEME                                           ║
+ * ║  Activated via [data-theme="neo-brutalism"] on <html>          ║
+ * ║  Bold borders · Saturated colors · Hard shadows · Chunky fun  ║
+ * ╚══════════════════════════════════════════════════════════════════╝
+ */
+
+[data-theme="neo-brutalism"] {
+  --bg: #e8f5e9;
+  --panel: #fff;
+  --panel-strong: #fffde7;
+  --accent: #d32f2f;
+  --accent-light: #ff6659;
+  --accent-gradient: linear-gradient(135deg, #ff6659 0%, #d32f2f 100%);
+  --deep: #1a1a1a;
+  --grid-line: #222;
+  --text: #111;
+  --text-muted: #444;
+  --success: #2e7d32;
+  --warning: #f9a825;
+  --danger: #c62828;
+  --card-shadow: 5px 5px 0 #111;
+  --card-shadow-hover: 7px 7px 0 #111;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --nb-shadow: 5px 5px 0 #111;
+  --nb-shadow-lg: 8px 8px 0 #111;
+  --nb-border: 3px solid #111;
+}
+
+/* ─── Body ────────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] body {
+  background: #e8f5e9;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(255, 235, 59, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(233, 30, 99, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(33, 150, 243, 0.08) 0%, transparent 50%);
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] header {
+  background: #ffeb3b;
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow-lg);
+  border-radius: var(--radius);
+  position: relative;
+}
+
+[data-theme="neo-brutalism"] header::before {
+  display: none;
+}
+
+[data-theme="neo-brutalism"] header h1 {
+  color: #111;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 2.4rem;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+}
+
+[data-theme="neo-brutalism"] header p {
+  color: #333;
+  font-weight: 600;
+}
+
+/* ─── Theme toggle in brutalism mode ──────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .theme-toggle {
+  background: #111;
+  border: 2px solid #111;
+  border-radius: 8px;
+}
+
+[data-theme="neo-brutalism"] .theme-toggle span {
+  color: #ffeb3b;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+}
+
+[data-theme="neo-brutalism"] .toggle-track {
+  background: #555;
+  border: 2px solid #fff;
+  border-radius: 6px;
+}
+
+[data-theme="neo-brutalism"] .toggle-track.active {
+  background: #d32f2f;
+  border-color: #fff;
+}
+
+[data-theme="neo-brutalism"] .toggle-thumb {
+  border-radius: 4px;
+  background: #ffeb3b;
+}
+
+/* ─── Sections ────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] section {
+  background: #fff;
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  border-radius: var(--radius);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-theme="neo-brutalism"] section:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--nb-shadow-lg);
+}
+
+[data-theme="neo-brutalism"] h2 {
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+[data-theme="neo-brutalism"] h2::before {
+  width: 6px;
+  height: 28px;
+  background: #d32f2f;
+  border-radius: 0;
+}
+
+/* ─── Data cards ──────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .data-card {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  border-radius: var(--radius-sm);
+  background: #e3f2fd;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-theme="neo-brutalism"] .data-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #111;
+}
+
+[data-theme="neo-brutalism"] .data-card strong {
+  color: #d32f2f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.9rem;
+}
+
+[data-theme="neo-brutalism"] .data-card span {
+  color: #111;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .algo-btn {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.88rem;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+[data-theme="neo-brutalism"] .algo-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #111;
+  background: #f3e5f5;
+  color: #111;
+}
+
+[data-theme="neo-brutalism"] .algo-btn.active {
+  background: #d32f2f;
+  color: #fff;
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #111;
+  border-color: #111;
+}
+
+/* ─── CSV Upload ──────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .csv-upload-area {
+  border: var(--nb-border);
+  border-style: dashed;
+  background: #fff3e0;
+}
+
+[data-theme="neo-brutalism"] .csv-upload-label {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  border-radius: var(--radius-sm);
+  background: #4caf50;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+[data-theme="neo-brutalism"] .csv-upload-label:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #111;
+}
+
+[data-theme="neo-brutalism"] .csv-help {
+  border: 2px solid #111;
+  background: #fffde7;
+  color: #333;
+}
+
+[data-theme="neo-brutalism"] .csv-help code {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #2e7d32;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ─── Progress bar ────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .progress-track {
+  border: var(--nb-border);
+  border-radius: 6px;
+  background: #e0e0e0;
+}
+
+[data-theme="neo-brutalism"] #progress-bar {
+  background: #2196f3;
+  border-radius: 4px;
+}
+
+[data-theme="neo-brutalism"] #progress-bar::after {
+  display: none;
+}
+
+[data-theme="neo-brutalism"] .progress-label {
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.82rem;
+}
+
+/* ─── Schedule results ────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] #schedule-results {
+  background: #fffde7;
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+}
+
+[data-theme="neo-brutalism"] .grid-row {
+  border-bottom: 2px solid #222;
+}
+
+[data-theme="neo-brutalism"] .grid-row:last-child {
+  border-bottom: none;
+}
+
+[data-theme="neo-brutalism"] .slot-label {
+  color: #d32f2f;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="neo-brutalism"] .legend {
+  border: 2px solid #111;
+  border-left-width: 5px;
+  background: #f3e5f5;
+  color: #111;
+  font-weight: 600;
+}
+
+/* ─── Master grid table ───────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .table-wrapper {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+[data-theme="neo-brutalism"] #master-grid th {
+  background: #bbdefb;
+  border: 2px solid #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+}
+
+[data-theme="neo-brutalism"] #master-grid td {
+  border: 2px solid #111;
+}
+
+[data-theme="neo-brutalism"] #master-grid tr:hover td {
+  background: #fff9c4;
+}
+
+/* ─── Heatmap ─────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .heat-cell {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  border-radius: 6px;
+  background: #ffcdd2 !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+[data-theme="neo-brutalism"] .heat-cell:hover {
+  transform: translate(-2px, -2px) scale(1);
+  box-shadow: 5px 5px 0 #111;
+}
+
+[data-theme="neo-brutalism"] .heat-bar {
+  background: #d32f2f;
+  height: 5px;
+  border-radius: 0;
+}
+
+/* ─── Notes ───────────────────────────────────────────────────────────── */
+
+[data-theme="neo-brutalism"] .note-card {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  background: #e8f5e9;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+[data-theme="neo-brutalism"] .note-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #111;
+}
+
+[data-theme="neo-brutalism"] .note-card strong {
+  color: #d32f2f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="neo-brutalism"] .note-card ul {
+  color: #111;
+}
