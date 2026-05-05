@@ -30,6 +30,13 @@ class Timeslot:
         self.year, self.month, self.day = int(date_parts[0]), int(date_parts[1]), int(date_parts[2])
         self.is_late = self.hour >= 17
 
+    @property
+    def date_key(self):
+        return (self.year, self.month, self.day)
+
+    def same_date_as(self, other):
+        return self.date_key == other.date_key
+
     def __eq__(self, value):
         return self.date == value.date
 
