@@ -1,0 +1,32 @@
+INFO:     127.0.0.1:49792 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49793 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53892 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53892 - "POST /api/schedule/ga HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53894 - "GET /api/benchmarks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53895 - "GET /js/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55802 - "GET /?codex_reload=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55802 - "POST /api/schedule/ga HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /js/app.js?v=20260504 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /js/benchmarks.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/benchmarks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "POST /api/schedule/ga HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51847 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51847 - "POST /api/schedule/greedy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50695 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50695 - "GET /js/app.js?v=20260504-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50695 - "GET /js/benchmarks.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:50695 - "GET /api/benchmarks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50695 - "POST /api/schedule/ga HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53325 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53325 - "POST /api/schedule/greedy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59053 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59053 - "GET /css/styles.css?v=20260504-2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51014 - "GET /js/app.js?v=20260504-2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51014 - "GET /js/benchmarks.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51014 - "GET /api/benchmarks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51014 - "POST /api/schedule/ga HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64848 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64848 - "POST /api/schedule/greedy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56109 - "GET /api/benchmarks/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56109 - "POST /api/schedule/greedy HTTP/1.1" 200 OK

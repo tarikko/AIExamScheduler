@@ -297,6 +297,69 @@ h3 {
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
 }
 
+.algo-btn.is-disabled {
+  cursor: not-allowed;
+  background: var(--panel-strong);
+  color: var(--text-muted);
+  border-color: var(--grid-line);
+  box-shadow: none;
+  transform: none;
+}
+
+.benchmark-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.benchmark-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.benchmark-select {
+  min-width: min(100%, 340px);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--grid-line);
+  background: var(--panel-strong);
+  color: var(--text);
+  font: inherit;
+}
+
+.benchmark-btn {
+  border: 0;
+  background: var(--accent-gradient);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.benchmark-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
+}
+
+.benchmark-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+  box-shadow: none;
+}
+
+.benchmark-status {
+  min-height: 1.4rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
 /* ─── CSV Upload ──────────────────────────────────────────────────────── */
 
 .csv-upload-area {

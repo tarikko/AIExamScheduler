@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=20260504-2" />
   <link rel="stylesheet" href="css/neo-brutalism.css" />
 </head>
 <body>
@@ -30,6 +30,20 @@
       <h2>Data Snapshot</h2>
       <div class="data-grid" id="data-overview"></div>
       <div class="legend">Data is loaded from the default dataset or your uploaded CSV. All algorithms run on the Python backend.</div>
+    </section>
+
+    <section>
+      <h2>Benchmark Library</h2>
+      <div class="benchmark-panel">
+        <div class="benchmark-controls">
+          <select id="benchmark-select" class="benchmark-select">
+            <option value="">Loading benchmarks...</option>
+          </select>
+          <button id="load-benchmark-btn" class="benchmark-btn" type="button">Load Benchmark</button>
+        </div>
+        <div class="legend" id="benchmark-note">Load large datasets from the local benchmark folder and run the recommended solver directly from the website.</div>
+        <div class="benchmark-status" id="benchmark-status"></div>
+      </div>
     </section>
 
     <section>
@@ -111,6 +125,6 @@
     </section>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=20260504-2"></script>
 </body>
 </html>

@@ -18,14 +18,22 @@ class AStarScheduler:
         self.number_of_exams = len(exam_students)
         self.course_enrollments = course_enrollments
 
-        # Precompute conflict density: how many other exams each exam conflicts with
-        self.conflict_degrees = []
-        for i in range(self.number_of_exams):
-            degree = 0
-            for j in range(self.number_of_exams):
-                if i != j and len(exam_students[i] & exam_students[j]) > 0:
-                    degree += 1
-            self.conflict_degrees.append(degree)
+        self.conflict_degrees = self._build_conflict_degrees()
+
+    def _build_conflict_degrees(self) -> list[int]:
+        student_exams = {}
+        for exam_idx, students in enumerate(self.exam_students):
+            for student_id in students:
+                student_exams.setdefault(student_id, []).append(exam_idx)
+
+        conflicts = [set() for _ in range(self.number_of_exams)]
+        for exams in student_exams.values():
+            for i, exam_a in enumerate(exams):
+                for exam_b in exams[i + 1:]:
+                    conflicts[exam_a].add(exam_b)
+                    conflicts[exam_b].add(exam_a)
+
+        return [len(exam_conflicts) for exam_conflicts in conflicts]
 
     def run(self, time_limit_sec: float = 5.0, progress_callback: Optional[Callable] = None):
         """
@@ -43,7 +51,8 @@ class AStarScheduler:
         last_progress_time = start
 
         best_assignment = None
-        best_fitness = float('-inf')
+        best_assigned_count = 0
+        best_fitness = 0.0
 
         # Sort exams by conflict degree (descending) — most constrained first
         exam_order = sorted(
@@ -78,43 +87,41 @@ class AStarScheduler:
                 last_progress_time = now
 
             f, neg_g, _, assignment_tuple, depth = heapq.heappop(open_set)
+            assigned_count = sum(1 for value in assignment_tuple if value is not None)
+            if assigned_count > best_assigned_count:
+                best_assigned_count = assigned_count
+                best_assignment = list(assignment_tuple)
 
             if depth == self.number_of_exams:
                 # Complete assignment — evaluate
                 assignment = list(assignment_tuple)
                 fitness = self._compute_fitness(assignment)
-                if fitness > best_fitness:
+                if assigned_count > best_assigned_count or (
+                    assigned_count == best_assigned_count and fitness > best_fitness
+                ):
                     best_fitness = fitness
                     best_assignment = assignment
+                    best_assigned_count = assigned_count
                 continue
 
             # Pick next exam to assign
             exam_idx = exam_order[depth]
             assignment_list = list(assignment_tuple)
 
-            # Find used room_timeslot indices
-            used = set(a for a in assignment_list if a is not None)
+            used, timeslot_students = self._state_usage(assignment_list)
 
             # Try each possible slot, ordered by fit quality
             candidates = []
             for rt_idx, (room, timeslot) in enumerate(self.room_timeslot):
+                if time.perf_counter() >= deadline:
+                    break
                 if rt_idx in used:
                     continue
                 if room.capacity < len(self.exam_students[exam_idx]):
                     continue
 
-                # Check student conflicts
-                conflict = False
-                for prev_depth in range(depth):
-                    prev_exam = exam_order[prev_depth]
-                    prev_rt = assignment_list[prev_exam]
-                    if prev_rt is not None:
-                        _, prev_ts = self.room_timeslot[prev_rt]
-                        if prev_ts == timeslot:
-                            if len(self.exam_students[exam_idx] & self.exam_students[prev_exam]) > 0:
-                                conflict = True
-                                break
-                if conflict:
+                assigned_students = timeslot_students.get(timeslot)
+                if assigned_students and not self.exam_students[exam_idx].isdisjoint(assigned_students):
                     continue
 
                 waste = room.capacity - len(self.exam_students[exam_idx])
@@ -136,14 +143,21 @@ class AStarScheduler:
 
                 heapq.heappush(open_set, (f, -g, nodes_explored, new_tuple, g))
 
+            g = depth + 1
+            h = self._heuristic(assignment_tuple, g)
+            skip_cost = -g + h + 0.5
+            heapq.heappush(open_set, (skip_cost, -g, nodes_explored, assignment_tuple, g))
+
         elapsed = time.perf_counter() - start
 
         if progress_callback:
             progress_callback(100, f"Done — explored {nodes_explored} states in {elapsed:.2f}s")
 
         if best_assignment is None:
-            # Fallback: return whatever partial we have
+            best_assignment = [None] * self.number_of_exams
             best_fitness = 0.0
+        elif best_assigned_count < self.number_of_exams:
+            best_fitness = self._compute_fitness(best_assignment)
 
         return best_assignment, best_fitness, nodes_explored, elapsed
 
@@ -154,6 +168,20 @@ class AStarScheduler:
             return 0
         avg_density = sum(self.conflict_degrees) / self.number_of_exams if self.number_of_exams > 0 else 0
         return remaining * avg_density * 0.1
+
+    def _state_usage(self, assignment: list) -> tuple[set, dict]:
+        used = set()
+        timeslot_students = {}
+
+        for exam_idx, rt_idx in enumerate(assignment):
+            if rt_idx is None:
+                continue
+
+            _, timeslot = self.room_timeslot[rt_idx]
+            used.add(rt_idx)
+            timeslot_students.setdefault(timeslot, set()).update(self.exam_students[exam_idx])
+
+        return used, timeslot_students
 
     def _compute_fitness(self, assignment: list) -> float:
         """Compute fitness matching the GA/CSP formula."""

@@ -1,0 +1,751 @@
+\begin{filecontents*}{references.bib}
+@article{carter1996,
+  author = {Carter, Michael W. and Laporte, Gilbert and Lee, Sau Yan},
+  title = {Examination Timetabling: Algorithmic Strategies and Applications},
+  journal = {Journal of the Operational Research Society},
+  year = {1996},
+  volume = {47},
+  number = {3},
+  pages = {373--383},
+  doi = {10.1057/jors.1996.37}
+}
+
+@article{burke2002,
+  author = {Burke, Edmund K. and Petrovic, Sanja},
+  title = {Recent Research Directions in Automated Timetabling},
+  journal = {European Journal of Operational Research},
+  year = {2002},
+  volume = {140},
+  number = {2},
+  pages = {266--280},
+  doi = {10.1016/S0377-2217(02)00069-3}
+}
+
+@article{qu2009,
+  author = {Qu, Rong and Burke, Edmund K. and McCollum, Barry and Merlot, Liam T. G. and Lee, Sau Yan},
+  title = {A Survey of Search Methodologies and Automated System Development for Examination Timetabling},
+  journal = {Journal of Scheduling},
+  year = {2009},
+  volume = {12},
+  number = {1},
+  pages = {55--89},
+  doi = {10.1007/s10951-008-0077-5}
+}
+
+@techreport{mccollum2007,
+  author = {McCollum, Barry and McMullan, Paul and Burke, Edmund K. and Parkes, Andrew J. and Qu, Rong},
+  title = {The Second International Timetabling Competition: Examination Timetabling Track},
+  institution = {Queen's University Belfast},
+  year = {2007},
+  type = {Technical Report},
+  number = {QUB/IEEE/Tech/ITC2007/Exam/v4.0/17},
+  url = {https://www.eeecs.qub.ac.uk/itc2007/examtrack/report/Exam_Track_TechReportv4.0.pdf}
+}
+
+@article{mccollum2012,
+  author = {McCollum, Barry and McMullan, Paul and Parkes, Andrew J. and Burke, Edmund K. and Qu, Rong},
+  title = {A New Model for Automated Examination Timetabling},
+  journal = {Annals of Operations Research},
+  year = {2012},
+  volume = {194},
+  number = {1},
+  pages = {291--315},
+  doi = {10.1007/s10479-011-0997-x}
+}
+
+@article{leite2018,
+  author = {Leite, Nuno and Fernandes, Carlos M. and Mel{\'\i}cio, Fernando and Rosa, Agostinho C.},
+  title = {A Cellular Memetic Algorithm for the Examination Timetabling Problem},
+  journal = {Computers \& Operations Research},
+  year = {2018},
+  volume = {94},
+  pages = {118--138},
+  doi = {10.1016/j.cor.2018.02.009}
+}
+
+@article{leite2019,
+  author = {Leite, Nuno and Mel{\'\i}cio, Fernando and Rosa, Agostinho C.},
+  title = {A Fast Simulated Annealing Algorithm for the Examination Timetabling Problem},
+  journal = {Expert Systems with Applications},
+  year = {2019},
+  volume = {122},
+  pages = {137--151},
+  doi = {10.1016/j.eswa.2018.12.048}
+}
+
+@article{ceschia2023,
+  author = {Ceschia, Sara and Di Gaspero, Luca and Schaerf, Andrea},
+  title = {Educational Timetabling: Problems, Benchmarks, and State-of-the-Art Results},
+  journal = {European Journal of Operational Research},
+  year = {2023},
+  volume = {308},
+  number = {1},
+  pages = {1--18},
+  doi = {10.1016/j.ejor.2022.07.011}
+}
+
+@online{unitime2026,
+  author = {{UniTime}},
+  title = {Examination Timetabling},
+  year = {2026},
+  url = {https://www.unitime.org/uct_exams.php},
+  urldate = {2026-05-05}
+}
+\end{filecontents*}
+
+% ============================================================
+%  ENSIA - Introduction to Artificial Intelligence
+%  Project 1: Intelligent University Exam Scheduling System
+%  Spring 2025-2026
+% ============================================================
+
+\documentclass[11pt, a4paper]{article}
+
+% -- Packages ------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[top=2cm, bottom=1.5cm, left=1.5cm, right=1.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{amsmath, amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[backend=biber, style=apa, sorting=nyt]{biblatex}
+\addbibresource{references.bib}
+
+% -- Hyperref -----------------------------------------------
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=black}
+
+% -- Section styling ----------------------------------------
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.4em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{}{0em}{}
+
+% Tighter vertical spacing around headings to save page space
+\titlespacing{\section}{0pt}{10pt}{4pt}
+\titlespacing{\subsection}{0pt}{7pt}{3pt}
+\titlespacing{\subsubsection}{0pt}{5pt}{2pt}
+
+% -- Header / Footer ----------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small ENSIA -- Intro to AI}
+\rhead{\small Intelligent Exam Scheduling System}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{14pt}
+
+% -- Spacing -------------------------------------------------
+\setstretch{1.1}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+% -- Caption -------------------------------------------------
+\captionsetup{font=small, labelfont=bf, skip=4pt}
+
+% ============================================================
+\begin{document}
+
+% ============================================================
+%  COVER PAGE
+% ============================================================
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\large\bfseries
+    The National Higher School of Artificial Intelligence\\[0.3em]
+    Introduction to AI Course Project\\[0.3em]
+    Spring 2026
+  }
+
+  \vspace{1.8cm}
+  \rule{\linewidth}{1pt}\\[0.5em]
+  {\Large\bfseries Introduction to AI Project Paper}\\[0.5em]
+  \rule{\linewidth}{1pt}
+
+  \vspace{1.2cm}
+  \noindent\textbf{\large Project Title:}\enspace Intelligent University Exam Scheduling System \underline{\hspace{9.6cm}}
+
+  \vspace{1.2cm}
+  \noindent\textbf{Student list:}
+
+  \vspace{0.5em}
+  \noindent
+  \begin{tabular}{|p{9cm}|p{4.5cm}|}
+    \hline
+    \rule{0pt}{11pt}\textbf{Full name} & \textbf{Group}\\[2pt]
+    \hline
+    \rule{0pt}{16pt} Ilyes Oukil & G6 \\[5pt]\hline
+    \rule{0pt}{16pt} Mohamed Boukra & G3 \\[5pt]\hline
+    \rule{0pt}{16pt} Abdelkader Tarik Benabadji & G6 \\[5pt]\hline
+    \rule{0pt}{16pt} Akram Benchouche & G3 \\[5pt]\hline
+    \rule{0pt}{16pt} Abdelrahim Zemoura & G6 \\[5pt]\hline
+    \rule{0pt}{16pt} Reda Amriou & G3 \\[5pt]\hline
+  \end{tabular}
+\end{titlepage}
+
+% ============================================================
+%  TABLE OF CONTENTS
+% ============================================================
+\newpage
+\thispagestyle{fancy}
+\tableofcontents
+
+% ============================================================
+%  ABSTRACT + INTRODUCTION
+% ============================================================
+\newpage
+\setcounter{page}{1}
+
+\phantomsection
+\addcontentsline{toc}{section}{Abstract}
+
+{\large\bfseries Abstract}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+University examination timetabling is a recurrent and operationally
+critical problem faced by higher education institutions at the end of
+every academic semester. The task of assigning a set of exams to a
+limited number of time slots and rooms, while simultaneously satisfying
+a collection of hard and soft constraints, has been formally recognized
+as a difficult combinatorial optimisation problem for which exhaustive
+search becomes impractical at realistic scale. This report presents an
+AI-driven examination scheduling system in which four complementary
+problem-solving strategies are designed, implemented, and comparatively
+evaluated. The current experimental study is built on the
+\texttt{benchmark/1} instance distributed with the project repository,
+derived from University of Nottingham semester-1 examination data for
+1994--1995, and therefore reflects a real institutional scheduling
+context rather than a purely synthetic toy example. Evaluation is
+performed across multiple performance dimensions including hard
+constraint violations, penalty cost, execution time, and room
+utilisation. Results are expected to show clear trade-offs between
+solution quality and computational effort, offering a practical basis
+for choosing an algorithm according to institutional needs. An
+interactive interface provides a Master Schedule grid view and a Student
+Conflict Heatmap to support administrative decision-making.
+
+\vspace{4pt}
+\noindent\textbf{Keywords:} Combinatorial optimisation, Exam timetabling, A* search, Genetic Algorithm, Constraint Satisfaction Problem
+
+\vspace{5pt}
+\noindent\rule{\linewidth}{0.4pt}
+\vspace{4pt}
+
+\phantomsection
+\addcontentsline{toc}{section}{Introduction (1 page max)}
+
+{\large\bfseries Introduction}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+The scheduling of university examinations is a real and recurring
+administrative challenge faced by virtually every higher education
+institution at the close of each academic semester. At its core, the
+problem requires assigning each exam to a time slot and a room such that
+no student is required to sit two exams simultaneously, no room exceeds
+its seating capacity, and no two exams are placed in the same room at
+the same time. While deceptively simple in statement, this assignment
+task grows rapidly in complexity as student enrolments increase and
+degree programmes become more modular, since both factors raise conflict
+density, that is, the probability that two exams share at least one
+common student~\parencite{carter1996,qu2009}.
+
+From a computational standpoint, university examination timetabling is
+closely related to graph coloring: exams can be represented as vertices
+and a common enrollment induces an edge between two vertices, so
+feasibility requires adjacent exams not to share the same time slot.
+Because the underlying search space is combinatorial and heavily
+constrained, no general polynomial-time exact method is known for the
+realistic cases studied in practice~\parencite{carter1996,qu2009}. As a
+result, the literature has progressively moved from simple constructive
+heuristics toward richer search procedures, including constraint-based
+methods, simulated annealing, tabu search, genetic algorithms, and
+hybrid metaheuristics~\parencite{burke2002,qu2009,leite2019}.
+
+Despite these advances, many institutions still depend on semi-manual
+procedures, often starting from the previous semester timetable and
+repairing conflicts by hand. Such workflows become fragile as cohorts
+grow and room resources tighten. There is therefore a clear practical
+need for automated scheduling systems that can rapidly construct valid
+timetables, reduce administrative effort, and produce schedules that are
+also more comfortable for students.
+
+This project addresses that need by designing and implementing a
+complete exam scheduling system around four distinct strategies: Greedy
+search, Constraint Satisfaction (CSP), A* search, and a Genetic
+Algorithm (GA). All four algorithms operate on a shared internal model
+based on room--timeslot assignments and are compared under the same
+evaluation function. For reproducible experimentation, the current
+report uses the local \texttt{benchmark/1} dataset bundled with the
+repository, a Nottingham-based real-world exam instance. Beyond
+producing schedules, the system also provides an interactive interface
+with a Master Schedule grid view and a Student Conflict Heatmap for
+visual inspection of the timetable. The remainder of this report covers,
+in order: related work, dataset construction, problem formulation and
+solving techniques, application architecture, experimental results, and
+finally discussion and conclusion.
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{State of the Art (1 page max)}
+{\large\bfseries State of the Art}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+Examination timetabling was first studied through constructive
+heuristics inspired by graph coloring, because the central difficulty is
+to separate mutually conflicting exams across a limited number of
+periods. A landmark paper by \textcite{carter1996} compared several
+algorithmic strategies on real institutional data and helped establish
+shared benchmark culture in the field. Later surveys by
+\textcite{burke2002} and \textcite{qu2009} show how the literature moved
+from institution-specific heuristics toward reusable search procedures
+and benchmark-driven empirical comparison.
+
+Two broad families now dominate the literature. The first is
+exact-or-model-based optimisation, such as integer programming,
+constraint programming, and branch-and-bound. These approaches are
+valuable when the scheduling model must express rich institutional rules
+precisely, but they often struggle as problem size and constraint
+interaction increase. This limitation motivated richer formal benchmark
+models such as the ITC 2007 examination track and the later formulation
+of \textcite{mccollum2012}, whose explicit goal was to reduce the gap
+between simplified academic formulations and the constraints faced in
+real deployments.
+
+The second family is approximate search, especially metaheuristics and
+hybrid methods. According to \textcite{qu2009}, tabu search, simulated
+annealing, evolutionary algorithms, and memetic methods became popular
+because they scale better on large instances and can improve a feasible
+timetable without exhaustively exploring the search space. The ITC 2007
+competition further accelerated this trend by standardising instances
+and evaluation rules for realistic exam scheduling
+problems~\parencite{mccollum2007}. More recent benchmark-oriented
+surveys confirm that state-of-the-art results are still typically
+achieved by highly engineered hybrid methods rather than by a single
+simple heuristic alone~\parencite{ceschia2023}. Examples include the
+FastSA simulated annealing variant of \textcite{leite2019} and the
+cellular memetic algorithm of \textcite{leite2018}, both of which
+report competitive results on established public benchmarks.
+
+In parallel, production systems such as UniTime show what a full
+institutional platform looks like: integrated exam data management,
+distribution constraints, and solver support aimed at operational
+deployment~\parencite{unitime2026}. Compared with such systems, our
+project deliberately targets a lighter educational setting. Rather than
+seeking the strongest published benchmark result, it compares four
+transparent AI techniques under one common evaluator and couples them
+with visual feedback tools, making the scheduling process easier to
+understand, analyse, and discuss in a course-project context.
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Data Set Building (1.5 pages max)}
+{\large\bfseries Data Set Building}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+\label{sec:data}
+
+\subsection{Data Source and Collection}
+
+The dataset used in this report comes from the local folder
+\texttt{benchmark/1} included in the project repository. Its
+\texttt{README} identifies the instance as the main exam timetabling data
+for the University of Nottingham, semester 1, academic year 1994--1995.
+The raw benchmark is therefore a real historical university dataset
+rather than a synthetic classroom example. The same \texttt{README}
+reports 800 exams, 7{,}896 students, 223 underlying courses, and
+33{,}997 enrollment records.
+
+The folder contains five complementary files: \texttt{README},
+\texttt{students}, \texttt{exams}, \texttt{enrolements}, and
+\texttt{data}. Student identifiers are already anonymised in the raw
+files and appear only as alphanumeric codes, so no additional
+de-identification step was needed for this project. To preserve
+reproducibility, the benchmark was not manually altered; instead, the
+backend parser converts the raw files into the internal JSON-like format
+used by the scheduling algorithms and the frontend.
+
+\subsection{Dataset Structure}
+
+Each file contributes a different part of the scheduling instance. The
+\texttt{exams} file is a fixed-width catalog containing exam codes,
+titles, durations, and department identifiers. The \texttt{students}
+file links each student to a course code, while the
+\texttt{enrolements} file gives the student-to-exam relationships that
+actually drive clash detection in the scheduler. Finally, the
+\texttt{data} file stores the examination window, room capacities, and a
+large set of additional benchmark-specific constraints such as room
+preferences, coincidences, earliness priorities, ordering requirements,
+and one room unavailability notice.
+
+When parsed by the current backend, these files produce 800 active exams
+with at least one enrolled student, 7{,}896 students, 16 rooms, and
+33{,}997 enrollment links. Room capacities range from 15 to 270 seats.
+The parser expands the calendar window from Monday 23 January 1995 to
+Saturday 4 February 1995 into 32 candidate periods: three weekday
+periods (09:00, 13:30, 16:30) and one Saturday morning period. This
+period expansion follows the raw dates stored in the repository, even
+though the Nottingham benchmark is sometimes presented in the literature
+in a more compact period-based form.
+
+\begin{table}[H]
+  \centering
+  \caption{Dataset Summary Statistics}
+  \label{tab:dataset_stats}
+  \begin{tabularx}{\linewidth}{lX}
+    \toprule
+    \textbf{Property}          & \textbf{Value} \\
+    \midrule
+    Number of courses / exams  & 800 exams \\
+    Total students enrolled    & 7{,}896 students \\
+    Number of rooms            & 16 rooms \\
+    Number of time slots       & 32 candidate periods generated from the raw calendar window \\
+    Conflict density           & 3.16\% conflicting exam pairs (10{,}113 conflicts over $\binom{800}{2}$ possible pairs) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Preprocessing}
+
+Preprocessing begins by parsing the fixed-width \texttt{exams} records
+to recover each exam code, textual description, and duration. The
+\texttt{enrolements} file is then scanned to build the set of students
+registered in each exam and to derive the enrollment count used by the
+solvers. From these student sets, a conflict graph is constructed: two
+exams are adjacent if they share at least one student. In the current
+instance this yields 10{,}113 conflicting exam pairs, corresponding to a
+pairwise conflict density of approximately 0.0316.
+
+The next step is resource generation. Room capacities are parsed from
+the \texttt{data} file, and all room--timeslot pairs are created through
+the Cartesian product of the 16 rooms and 32 generated periods, giving a
+raw assignment domain of 512 possible placements per exam before
+constraint pruning. This transformation is convenient for the four
+implemented algorithms because they all manipulate a single integer
+index that refers to one room--timeslot pair.
+
+Finally, it is important to note what is \emph{not} yet encoded by the
+current project. Although the raw \texttt{data} file contains fixed room
+assignments, coincident exams, earliness priorities, ordering rules,
+spread requirements, and a room unavailability constraint, the present
+backend only uses the core information needed for room-capacity checks,
+time generation, and conflict detection. This simplification makes the
+benchmark easier to process inside a course project, but it also means
+that \texttt{benchmark/1} acts as a demanding stress test rather than a
+fully faithful implementation of every original Nottingham rule. In
+particular, the simplified one-exam-per-room-slot model creates only 512
+room-slot positions for 800 exams, so complete feasibility is not
+guaranteed under this reduced formulation.
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Problem Solving Techniques (2 pages max)}
+{\large\bfseries Problem Solving Techniques}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+\subsection{Problem Formulation}
+
+Let $E = \{e_1, e_2, \dots, e_n\}$ be the set of exams, $R$ the set of
+rooms, and $T$ the set of candidate periods. In the implementation, each
+exam $e_i$ is represented by a decision variable $X_i$ whose value is
+the index of one pair in the Cartesian product $R \times T$. For the
+benchmark instance used here, the parser generates $|R| = 16$ rooms and
+$|T| = 32$ periods, so each exam initially has up to 512 possible raw
+placements before pruning. The student set attached to exam $e_i$ is
+stored as $S_i$, which allows conflicts to be tested by set
+intersection.
+
+Three hard constraints are enforced by all four solvers:
+\begin{enumerate}[leftmargin=1.2cm]
+  \item No two exams may use the same room--timeslot pair.
+  \item If two exams share at least one student, they may not be placed
+  in the same timeslot.
+  \item The assigned room capacity must be at least as large as the
+  number of students registered in the exam.
+\end{enumerate}
+
+All algorithms are compared with the same evaluation function. For a
+schedule $S$, the implemented fitness is
+\[
+F(S)=
+\frac{\frac{1}{|A|}\sum_{i \in A} q_i}
+{1 + \frac{L}{|A|} + 2\frac{P}{M}},
+\qquad
+q_i = -\frac{4n_i(n_i-c_i)}{c_i^2},
+\]
+where $A$ is the set of assigned exams, $n_i$ is the enrollment of exam
+$i$, $c_i$ is the capacity of its assigned room, $L$ is the number of
+late exams, $P$ is the total overlap count for pairs of exams sharing
+students and scheduled on the same day, and $M$ is the total overlap
+count over all exam pairs. If $M=0$, the last denominator term is
+omitted in the code.
+
+In simple terms, the evaluation function works as follows. It first
+computes a room-allocation score for every assigned exam from the number
+of enrolled students and the room capacity. It then divides that score
+by two penalties: one for using late periods and another for placing
+students with common registrations into multiple exams on the same day.
+Higher fitness is therefore better. In the Genetic Algorithm, any hard
+constraint violation immediately forces the fitness to $0$; in Greedy
+and A*, partially assigned schedules are scored only on the exams that
+have already been placed, while the CSP scores complete solutions found
+during search.
+
+\subsection{Greedy Search}
+
+The Greedy solver uses a constructive one-pass strategy. In the current
+implementation, exams are ordered by descending enrollment, so the
+largest exams are scheduled first. Although the class comment mentions a
+``Largest Enrollment + Degree'' heuristic, the actual sort key in code
+is purely enrollment-based. This is a reasonable practical choice
+because large exams are usually the hardest to fit into limited rooms.
+
+For each exam, the algorithm scans every still-unused room--timeslot
+pair and discards placements that violate a hard constraint. Among the
+remaining candidates, it selects the one with minimum wasted seats,
+while adding a very large local penalty of 1000 to late periods. The
+method is therefore fast, deterministic, and easy to explain: it tries
+to place the biggest exam first in the tightest feasible room and avoids
+late slots whenever possible. Its weakness is myopia: once an exam is
+placed, there is no repair step, so earlier choices can make later exams
+hard or impossible to assign on dense instances.
+
+\subsection{Constraint Satisfaction Problem (CSP)}
+
+The CSP solver formulates timetabling as a backtracking search with one
+variable per exam and one domain containing all currently feasible
+room--timeslot indices. Search begins with the full domain for every
+exam. At each step, the next variable is chosen by the Minimum
+Remaining Values (MRV) heuristic, which selects the exam whose domain is
+currently smallest. This focuses effort on the most constrained exams
+first.
+
+Once an exam is selected, candidate values are ordered by two practical
+preferences implemented directly in the code: non-late periods are tried
+before late ones, and rooms whose capacity is closer to the exam size
+are tried before looser fits. After tentatively assigning a value, the
+solver performs forward checking: every remaining exam has all
+inconsistent values removed from its domain. If any future domain
+becomes empty, the branch is abandoned immediately. The search is also
+time-limited, so within the budget it keeps the best complete assignment
+encountered according to the shared fitness function. This makes the CSP
+component an informed depth-first search with strong pruning rather than
+a plain exhaustive enumeration.
+
+\subsection{A* Search}
+
+The A* module performs search over \emph{partial} schedules. A state is a
+tuple of length $n$ in which each position is either \texttt{None}
+(unassigned) or the index of a room--timeslot pair. Before the search
+starts, the solver computes a conflict degree for each exam, defined as
+the number of other exams with which it shares at least one student. The
+fixed expansion order then schedules exams by descending conflict degree
+and, in case of ties, descending enrollment.
+
+For a partial state at depth $d$, the heuristic is
+\[
+h(n) = (n-d)\times \overline{\deg}_{\text{conflict}} \times 0.1,
+\]
+that is, the number of remaining exams multiplied by the average
+conflict degree in the instance. Candidate successors are filtered using
+the same hard constraints as the other algorithms, ranked by wasted
+seats plus a small late-slot cost, and only the best eight are expanded
+in order to control branching. The priority queue also favors deeper
+partial assignments, so in practice the method behaves as an A*-inspired
+best-first search aimed at rapidly completing a feasible schedule rather
+than as a textbook optimal A* with an admissible cost model. Complete
+assignments are scored with the same fitness function used elsewhere.
+
+\subsection{Genetic Algorithm (GA)}
+
+In the Genetic Algorithm, one candidate timetable is encoded as a
+chromosome whose length equals the number of exams. Each gene stores one
+integer index into the room--timeslot list, so a full chromosome is a
+complete tentative schedule. The initial population is generated
+randomly over the full domain.
+
+The implementation uses single-point crossover at the middle of the
+chromosome: the first half is copied from one parent and the second half
+from the other. Mutation is applied independently to each gene with a
+user-provided probability; when mutation happens, the gene is simply
+replaced by another random room--timeslot index. Parent selection is
+based on roulette-wheel sampling, but one elite chromosome is preserved
+unchanged in every generation.
+
+Fitness evaluation is strict on feasibility. If two exams use the same
+room--timeslot pair, if two conflicting exams share a timeslot, or if an
+exam exceeds room capacity, the chromosome immediately receives fitness
+$0$. Otherwise, the shared soft-constraint evaluator is applied. This
+design makes the search easy to implement and keeps all algorithms on a
+common comparison scale. The trade-off is that many random chromosomes
+start infeasible, so population quality depends heavily on selection,
+crossover, and repeated mutation over generations.
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Application Design (2.5 pages max)}
+{\large\bfseries Application Design}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+\subsection{System Architecture}
+\noindent\textit{[Architecture description goes here.]}
+
+\subsection{Backend Modules}
+\noindent\textit{[Backend module descriptions go here.]}
+
+\subsection{Frontend \& Visualisation}
+\noindent\textit{[Frontend description goes here.]}
+
+\subsection{Technologies and Libraries}
+
+\begin{table}[H]
+  \centering
+  \caption{Technologies Used}
+  \label{tab:technologies}
+  \begin{tabularx}{\linewidth}{llX}
+    \toprule
+    \textbf{Component}  & \textbf{Technology}    & \textbf{Purpose} \\
+    \midrule
+    Language            & Python 3.x             & Core implementation \\
+    Backend             & FastAPI                & Scheduling API, CSV upload, and benchmark loading \\
+    Notebook            & Jupyter                & Algorithm experiments \\
+    Frontend            & HTML / CSS / JavaScript & Interactive controls and result display \\
+    Visualisation       & Matplotlib / Seaborn   & Plots and heatmaps \\
+    Data handling       & pandas                 & Dataset processing \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Results and Analysis (2.5 pages max)}
+{\large\bfseries Results and Analysis}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+\subsection{Evaluation Metrics}
+\noindent\textit{[Metric definitions go here.]}
+
+\subsection{Experimental Setup}
+\noindent\textit{[Experimental setup goes here.]}
+
+\subsection{Comparative Results}
+
+\begin{table}[H]
+  \centering
+  \caption{Performance Comparison of Scheduling Algorithms}
+  \label{tab:results}
+  \begin{tabularx}{\linewidth}{lXXXX}
+    \toprule
+    \textbf{Algorithm}    & \textbf{Hard Violations}
+                          & \textbf{Penalty Cost}
+                          & \textbf{Time (s)}
+                          & \textbf{Utilisation (\%)} \\
+    \midrule
+    Greedy (Degree H.)    & -- & -- & -- & -- \\
+    A*                    & -- & -- & -- & -- \\
+    CSP + MRV + FC        & -- & -- & -- & -- \\
+    Genetic Algorithm     & -- & -- & -- & -- \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\noindent\textit{[Results discussion goes here.]}
+
+\subsection{Key Insights}
+\noindent\textit{[Key insights go here.]}
+
+% ============================================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{Discussion (1 page max)}
+{\large\bfseries Discussion}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+\noindent\textit{[Discussion text goes here.]}
+
+% ============================================================
+\vspace{10pt}
+\phantomsection
+\addcontentsline{toc}{section}{Conclusion (0.5 pages max)}
+{\large\bfseries Conclusion}
+\vspace{2pt}
+\titlerule
+\vspace{6pt}
+
+\noindent\textit{[Conclusion text goes here.]}
+
+% -- References ----------------------------------------------
+\newpage
+\printbibliography[heading=bibintoc, title={References}]
+
+% ============================================================
+%  APPENDICES
+% ============================================================
+\newpage
+\appendix
+\renewcommand{\thesection}{Appendix \Alph{section}}
+
+\section{System Interface and Implementation}
+\label{app:screenshots}
+
+\noindent\textit{[Screenshots will be added before submission.]}
+
+\newpage
+\section{Individual Contributions}
+\label{app:contributions}
+
+\begin{table}[H]
+  \centering
+  \caption{Distribution of Responsibilities}
+  \label{tab:contributions}
+  \begin{tabularx}{\linewidth}{lX}
+    \toprule
+    \textbf{Full Name} & \textbf{Contributions} \\
+    \midrule
+    Ilyes Oukil  & Data collection; conflict matrix builder; Section~3. \\
+    Mohamed Boukra  & Greedy and A* implementation; Sections 4.2 \& 4.4. \\
+    Abdelkader Tarik & CSP implementation (backtracking + MRV + FC); Section 4.3. \\
+    Akram Benchouche & Genetic Algorithm implementation; Section 4.5. \\
+    Abdelrahim Zemoura  & Frontend \& visualisation; Section 5.3; Appendix A. \\
+    Reda Amriou  & Team coordination; evaluation module; Sections 6 \& 7; References. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\end{document}

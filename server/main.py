@@ -5,6 +5,7 @@ Provides SSE-streamed algorithm execution and CSV upload endpoints.
 import csv
 import io
 import json
+import math
 import threading
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from server.algorithms.genetic import Chromosome, GeneticAlgorithm
 from server.algorithms.csp import CSP
 from server.algorithms.greedy import GreedyScheduler
 from server.algorithms.astar import AStarScheduler
+from server.benchmarks import list_benchmarks, load_benchmark_dataset
 
 # ─── App setup ────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ app.add_middleware(
 
 # Serve static frontend files
 BASE_DIR = Path(__file__).resolve().parent.parent
+BENCHMARK_DIR = BASE_DIR / "benchmark"
 app.mount("/css", StaticFiles(directory=str(BASE_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(BASE_DIR / "js")), name="js")
 app.mount("/data", StaticFiles(directory=str(BASE_DIR / "data")), name="data")
@@ -87,9 +90,11 @@ def _format_result(assignment, course_codes, courses, room_timeslot, fitness, el
                     "is_late": slot.is_late,
                 })
 
+    safe_fitness = fitness if isinstance(fitness, (int, float)) and math.isfinite(fitness) else 0
+
     return {
         "assignments": assignments,
-        "fitness": round(fitness, 6) if fitness else 0,
+        "fitness": round(safe_fitness, 6),
         "elapsed_seconds": round(elapsed, 3),
         "algorithm": algorithm,
     }
@@ -332,3 +337,18 @@ async def upload_csv(file: UploadFile = File(...)):
         "rooms": rooms,
         "timeslots": timeslots,
     }
+
+
+@app.get("/api/benchmarks")
+async def get_benchmarks():
+    """List locally available benchmark datasets."""
+    return {"benchmarks": list_benchmarks(BENCHMARK_DIR)}
+
+
+@app.get("/api/benchmarks/{benchmark_id}")
+async def get_benchmark_dataset(benchmark_id: str):
+    """Load one benchmark dataset and normalize it for the frontend."""
+    try:
+        return load_benchmark_dataset(BENCHMARK_DIR, benchmark_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
