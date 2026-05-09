@@ -10,23 +10,31 @@ Summary:
   - 4Y: 150 students (Bac 2022)
 - Rooms: 8 AMPHI rooms (Capacity 80 each)
 
-The data is in the following files:
+## Directory Structure
 
-students.csv:
+To ensure that exams and enrollments are properly partitioned, the data is separated by semester:
+
+- **`s1/`**: Contains data specific to Semester 1 (Fall). Use the CSVs in this folder when scheduling Semester 1 exams.
+- **`s2/`**: Contains data specific to Semester 2 (Spring). Use the CSVs in this folder when scheduling Semester 2 exams.
+- **`merged/`**: Contains the full combined dataset across all semesters, kept here for reference or backup.
+
+### Files within each directory:
+
+`students.csv`:
     List of students with IDs
 
-exams.csv:
+`exams.csv`:
     List of exams with the following fields:
     - code: Module code (e.g., FMAT, DSA1)
     - name: Full name of the module
     - duration: Exam duration in minutes
 
-enrolements.csv:
+`enrolements.csv`:
     Mapping of students to the exams they are sitting.
     - student: Student ID
     - exam: Exam code
 
-room.csv:
+`room.csv`:
     List of available rooms and their capacities.
     - Room Name (e.g., AMPHI_1)
     - Capacity (e.g., 80)

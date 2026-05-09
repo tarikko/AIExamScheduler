@@ -1,0 +1,30 @@
+code,name,duration
+FMAT,Foundational Mathematics,120
+DSA1,Data Structures and Algorithms 1,120
+DSYS,Digital Systems,90
+ITE,Information Technology Essentials,90
+ENG1,English 1,90
+CTCS,Critical Thinking and Creativity Skills,60
+HOA1,History of Algeria 1,60
+CITZ,Citizenship,60
+DSA2,Data Structures and Algorithms 2,120
+MLOGIC,Mathematical Logic,120
+MANAL2,Mathematical Analysis 2,120
+DB,Databases,120
+PROBA,Probability,120
+WEB,Web Development,90
+BUS,Introduction to Business,60
+DMIN,Data Mining,120
+OPRES,Operations Research,120
+STOCH,Stochastic Modelling and Simulation,120
+SE,Software Engineering,120
+NET,Networks and Protocols,120
+MOBDEV,Mobile Development,120
+ENTR,Entrepreneurship and Innovation,60
+NLP,Natural Language Processing,120
+DL,Deep Learning,120
+HCI,Human Computer Interaction,120
+WNET,Wireless Communication Networks and Systems,120
+ROBOT,Introduction to Mobile Robotics,120
+ETHICS,AI and Ethics,60
+TOPICS,Selected topics in AI/Technology,120
