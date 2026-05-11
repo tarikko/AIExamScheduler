@@ -34,6 +34,37 @@ class CSP:
             return False
         return True
 
+    def _solution_fitness(self, schedule: list) -> float:
+        """Compute fitness for a complete assignment."""
+        consecutive_exams_penalty = 0
+        total_mutual_students = 0
+        for i in range(self.number_of_exams):
+            for j in range(i + 1, self.number_of_exams):
+                overlap = len(self.exam_students[i] & self.exam_students[j])
+                total_mutual_students += overlap
+                if self.room_timeslot[schedule[i]][1].day == self.room_timeslot[schedule[j]][1].day:
+                    consecutive_exams_penalty += overlap
+
+        late_exams = 0
+        total_exams = self.number_of_exams
+        for i in range(self.number_of_exams):
+            if self.room_timeslot[schedule[i]][1].is_late:
+                late_exams += 1
+
+        efficient_allocation_factor = 0
+        for i in range(self.number_of_exams):
+            n = len(self.exam_students[i])
+            c = self.room_timeslot[schedule[i]][0].capacity
+            efficient_allocation_factor += -4 * n * (n - c) / (c ** 2)
+
+        if total_mutual_students == 0:
+            penalty_factor = 1 + late_exams / total_exams
+        else:
+            penalty_factor = 1 + late_exams / total_exams + 2 * (consecutive_exams_penalty / total_mutual_students)
+
+        fitness_value = (efficient_allocation_factor / total_exams) / penalty_factor
+        return fitness_value
+
     def run(self, time_limit_sec: float = 5.0, progress_callback: Optional[Callable] = None):
         """
         Run the CSP solver with time-limited backtracking.
@@ -47,12 +78,25 @@ class CSP:
         nodes_explored = 0
 
         best_assignment = None
-        best_fitness = float('-inf')
+        best_assigned_count = 0
+        best_fitness = 0.0
 
         last_progress_time = start
 
+        def update_best_partial(candidate: list):
+            nonlocal best_assignment, best_assigned_count, best_fitness
+
+            assigned_count = sum(1 for value in candidate if value is not None)
+            if assigned_count == 0:
+                return
+
+            if assigned_count > best_assigned_count:
+                best_assignment = candidate.copy()
+                best_assigned_count = assigned_count
+                best_fitness = self._solution_fitness(candidate)
+
         def solve(assignment: list, not_assigned: set, domains: dict):
-            nonlocal nodes_explored, best_assignment, best_fitness, last_progress_time
+            nonlocal nodes_explored, best_assignment, best_assigned_count, best_fitness, last_progress_time
 
             now = time.perf_counter()
             if now >= deadline:
@@ -70,10 +114,11 @@ class CSP:
                 last_progress_time = now
 
             if len(not_assigned) == 0:
-                sol_fitness = compute_fitness(assignment, self.exam_students, self.room_timeslot)
+                sol_fitness = self._solution_fitness(assignment)
                 if sol_fitness > best_fitness:
                     best_fitness = sol_fitness
                     best_assignment = assignment.copy()
+                    best_assigned_count = self.number_of_exams
                 return
 
             curr = min(not_assigned, key=lambda i: len(domains[i]))
@@ -106,9 +151,13 @@ class CSP:
                         break
 
                 if invalid_possible_value:
+                    partial_assignment = assignment.copy()
+                    partial_assignment[curr] = possible_value
+                    update_best_partial(partial_assignment)
                     continue
 
                 assignment[curr] = possible_value
+                update_best_partial(assignment)
                 solve(assignment, not_assigned, new_domain)
                 assignment[curr] = None
 
@@ -126,4 +175,4 @@ class CSP:
         if progress_callback:
             progress_callback(100, f"Done — explored {nodes_explored} nodes in {elapsed:.2f}s")
 
-        return (self.exam if best_assignment is not None else None), best_fitness, nodes_explored, elapsed
+        return (self.exam if best_assignment is not None else [None] * self.number_of_exams), best_fitness, nodes_explored, elapsed
