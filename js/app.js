@@ -1,62 +1,47 @@
-/**
- * Main application — connects the frontend to the FastAPI backend.
- * Uses Server-Sent Events (SSE) for real-time progress during algorithm execution.
- */
+import {
+	renderDataOverview,
+	renderSchedule,
+	buildMasterGrid,
+	buildHeatmap,
+} from "./ui.js";
 
-import { renderDataOverview, renderSchedule, buildMasterGrid, buildHeatmap } from "./ui.js";
-
-// ─── Configuration ───────────────────────────────────────────────────────────
-
-const API_BASE = ""; // same origin — FastAPI serves the frontend
+const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
 
 const algorithms = {
 	greedy: {
-		label: "Greedy Search (Largest Enrollment)",
-		note: "Assigns the busiest exam first to the tightest-fitting non-conflicting slot. Fast but no backtracking.",
+		label: "Greedy Search",
+		note: "Places high-conflict, high-enrollment exams first using the best local room-timeslot.",
 	},
 	csp: {
-		label: "CSP (MRV + Forward Checking)",
-		note: "Backtracking search with Minimum Remaining Values heuristic and forward checking. Time-limited on the Python backend.",
+		label: "CSP",
+		note: "Backtracking with MRV and forward checking, time-limited on the backend.",
 	},
 	ga: {
-		label: "Genetic Algorithm (Roulette Wheel + Elitism)",
-		note: "Evolves a population of schedules using crossover, mutation, and fitness-based selection. Runs on the Python backend.",
+		label: "Genetic Algorithm",
+		note: "Evolves schedules with elitism, crossover, mutation, and a greedy feasible seed.",
 	},
 	a_star: {
-		label: "A* Search (Conflict Density Heuristic)",
-		note: "Explores partial schedules, prioritizing assignments that leave fewer high-conflict exams unscheduled.",
+		label: "A* Search",
+		note: "Explores partial schedules using soft-cost and remaining-conflict heuristics.",
 	},
 };
 
-// ─── State ───────────────────────────────────────────────────────────────────
-
 let dataset = null;
 let currentAbort = null;
-
-// Default timeslots for the fake dataset
-const DEFAULT_TIMESLOTS = [
-	"2026-06-10 09:00", "2026-06-10 14:00", "2026-06-10 17:30",
-	"2026-06-11 09:00", "2026-06-11 14:00", "2026-06-11 17:30",
-	"2026-06-12 09:00", "2026-06-12 14:00",
-	"2026-06-13 09:00", "2026-06-13 14:00",
-];
-
-// ─── Progress ────────────────────────────────────────────────────────────────
+let latestSolution = null;
 
 function showProgress(percent, message) {
 	const container = document.getElementById("progress-container");
 	const bar = document.getElementById("progress-bar");
 	const msg = document.getElementById("progress-message");
 	container.style.display = "block";
-	bar.style.width = percent + "%";
+	bar.style.width = `${percent}%`;
 	if (msg && message) msg.textContent = message;
 }
 
 function hideProgress() {
 	document.getElementById("progress-container").style.display = "none";
 }
-
-// ─── Theme toggle ────────────────────────────────────────────────────────────
 
 function initThemeToggle() {
 	const toggle = document.getElementById("theme-toggle");
@@ -65,76 +50,31 @@ function initThemeToggle() {
 
 	toggle.addEventListener("click", () => {
 		isNeo = !isNeo;
-		document.documentElement.setAttribute(
-			"data-theme",
-			isNeo ? "neo-brutalism" : ""
-		);
+		document.documentElement.setAttribute("data-theme", isNeo ? "neo-brutalism" : "");
 		track.classList.toggle("active", isNeo);
 	});
 }
 
-// ─── CSV Upload ──────────────────────────────────────────────────────────────
-
-function initCSVUpload() {
-	const input = document.getElementById("csv-file-input");
-	const filenameEl = document.getElementById("csv-filename");
-
-	input.addEventListener("change", async (e) => {
-		const file = e.target.files[0];
-		if (!file) return;
-
-		filenameEl.textContent = `Uploading: ${file.name}...`;
-
-		const formData = new FormData();
-		formData.append("file", file);
-
-		try {
-			const res = await fetch(`${API_BASE}/api/upload-csv`, {
-				method: "POST",
-				body: formData,
-			});
-
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.detail || "Upload failed");
-			}
-
-			const data = await res.json();
-
-			// Ensure timeslots exist
-			if (!data.timeslots || data.timeslots.length === 0) {
-				data.timeslots = DEFAULT_TIMESLOTS;
-			}
-
-			// Reshape for the frontend rendering
-			dataset = reshapeDataset(data);
-			renderDataOverview(dataset);
-			filenameEl.textContent = `✅ Loaded ${file.name} — ${data.courses.length} courses, ${data.students.length} students, ${data.rooms.length} rooms`;
-		} catch (err) {
-			filenameEl.textContent = `❌ Error: ${err.message}`;
-			console.error("CSV upload error:", err);
-		}
-	});
+async function loadJson(url, options = {}) {
+	const res = await fetch(url, options);
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.detail || `Request failed: ${res.status}`);
+	}
+	return res.json();
 }
 
-// ─── Data helpers ────────────────────────────────────────────────────────────
-
 function reshapeDataset(raw) {
-	// Create time slot objects for the frontend grid and heatmap
-	const timeSlots = (raw.timeslots || DEFAULT_TIMESLOTS).map((ts, index) => {
-		// ts can be a string "YYYY-MM-DD HH:MM" or an object {date: "..."}
-		const dateStr = typeof ts === "string" ? ts : ts.date;
-		const parts = dateStr.split(" ");
-		const datePart = parts[0];
-		const timePart = parts[1] || "09:00";
+	const timeslotStrings = raw.timeslots || [];
+	const timeSlots = timeslotStrings.map((dateStr, index) => {
+		const [datePart, timePart = "09:00"] = dateStr.split(" ");
+		const d = new Date(`${datePart}T${timePart}`);
 		const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-		const d = new Date(datePart);
-		const dayShort = dayNames[d.getDay()] || datePart;
-
+		const dayShort = Number.isNaN(d.getTime()) ? datePart : dayNames[d.getDay()];
 		return {
 			id: `${datePart}-${timePart.replace(":", "")}`,
 			day: datePart,
-			label: `${dayShort} ${datePart} • ${timePart}`,
+			label: `${dayShort} ${datePart} - ${timePart}`,
 			durationMins: 120,
 			index,
 			date: dateStr,
@@ -142,210 +82,303 @@ function reshapeDataset(raw) {
 	});
 
 	return {
-		courses: raw.courses || [],
+		courses: (raw.courses || []).map((course) => ({
+			code: course.code,
+			name: course.name,
+			enrollment: Number(course.enrollment || 0),
+			durationMins: Number(course.duration_minutes || course.durationMins || 120),
+		})),
 		students: raw.students || [],
-		rooms: raw.rooms || [],
+		rooms: (raw.rooms || []).map((room) => ({
+			name: room.name,
+			capacity: Number(room.capacity || 0),
+		})),
 		timeSlots,
-		timeslotStrings: (raw.timeslots || DEFAULT_TIMESLOTS).map(
-			(ts) => (typeof ts === "string" ? ts : ts.date)
-		),
+		timeslotStrings,
+		metadata: raw.metadata || {},
 	};
 }
 
-// ─── Run algorithm via SSE ───────────────────────────────────────────────────
+function setDataset(raw, statusText) {
+	dataset = reshapeDataset(raw);
+	latestSolution = null;
+	document.getElementById("export-controls").hidden = true;
+	renderDataOverview(dataset);
+	buildMasterGrid([], dataset.rooms, dataset.timeSlots);
+	buildHeatmap([], dataset.students, []);
+	document.getElementById("schedule-results").innerHTML = "";
+	document.getElementById("score-note").textContent = statusText;
+}
+
+function setBenchmarkDataset(benchmark, statusText) {
+	dataset = {
+		kind: "benchmark",
+		benchmarkName: benchmark.folder || benchmark.name,
+		courses: [],
+		students: [],
+		rooms: [],
+		timeSlots: [],
+		timeslotStrings: [],
+		metadata: {
+			source: benchmark.name,
+			exam_count: benchmark.exams || 0,
+			student_count: benchmark.students || 0,
+			room_count: benchmark.rooms || 0,
+			timeslot_count: benchmark.timeslots || 0,
+			enrolment_rows: benchmark.enrolment_rows || 0,
+		},
+	};
+	latestSolution = null;
+	document.getElementById("export-controls").hidden = true;
+	renderDataOverview(dataset);
+	buildMasterGrid([], [], []);
+	buildHeatmap([], [], []);
+	document.getElementById("schedule-results").innerHTML = "";
+	document.getElementById("score-note").textContent = statusText;
+}
+
+function getActiveAlgorithm() {
+	return document.querySelector(".algo-btn[data-algo].active")?.dataset.algo || "greedy";
+}
+
+async function initBenchmarkSelector() {
+	const select = document.getElementById("benchmark-select");
+	const data = await loadJson(`${API_BASE}/api/benchmarks`);
+	select.innerHTML = "";
+	let defaultBenchmark = null;
+	data.benchmarks.forEach((benchmark) => {
+		const option = document.createElement("option");
+		option.value = benchmark.folder || benchmark.name;
+		option.textContent = `${benchmark.name} (${benchmark.exams || "?"} exams, ${benchmark.students || "?"} students)`;
+		option.dataset.benchmark = JSON.stringify(benchmark);
+		if (benchmark.name === "random_sp_06_synthetic") {
+			option.selected = true;
+			defaultBenchmark = benchmark;
+		}
+		select.appendChild(option);
+	});
+	if (!defaultBenchmark) defaultBenchmark = data.benchmarks[0];
+
+	document.getElementById("load-benchmark-btn").addEventListener("click", async () => {
+		const benchmark = JSON.parse(select.selectedOptions[0].dataset.benchmark);
+		setBenchmarkDataset(benchmark, `Selected benchmark ${benchmark.name}.`);
+		runStrategy(getActiveAlgorithm());
+	});
+
+	return defaultBenchmark;
+}
+
+function initCSVUpload() {
+	const input = document.getElementById("csv-file-input");
+	const filenameEl = document.getElementById("csv-filename");
+
+	input.addEventListener("change", async (event) => {
+		const files = Array.from(event.target.files || []);
+		if (!files.length) return;
+
+		const names = new Set(files.map((file) => file.name.toLowerCase()));
+		const required = ["rooms.csv", "timeslots.csv", "exams.csv", "enrollements.csv"];
+		const missing = required.filter((name) => !names.has(name));
+		if (files.length !== 4 || missing.length) {
+			filenameEl.textContent = `Select exactly: ${required.join(", ")}`;
+			return;
+		}
+
+		filenameEl.textContent = "Uploading dataset...";
+		const formData = new FormData();
+		files.forEach((file) => formData.append("files", file));
+
+		try {
+			const raw = await loadJson(`${API_BASE}/api/upload-dataset`, {
+				method: "POST",
+				body: formData,
+			});
+			setDataset(raw, "Uploaded dataset loaded.");
+			filenameEl.textContent = `Loaded ${raw.metadata.exam_count} exams, ${raw.metadata.student_count} students, ${raw.metadata.room_count} rooms.`;
+			runStrategy(getActiveAlgorithm());
+		} catch (err) {
+			filenameEl.textContent = `Error: ${err.message}`;
+		}
+	});
+}
+
+function buildRequestPayload() {
+	return {
+		courses: dataset.courses.map((course) => ({
+			code: course.code,
+			name: course.name,
+			enrollment: course.enrollment,
+			duration_minutes: course.durationMins,
+		})),
+		students: dataset.students.map((student) => ({
+			id: student.id,
+			courses: student.courses,
+		})),
+		rooms: dataset.rooms,
+		timeslots: dataset.timeslotStrings.map((date) => ({ date })),
+	};
+}
 
 async function runStrategy(key) {
 	if (!dataset) return;
-
-	// Abort previous request
 	if (currentAbort) currentAbort.abort();
 	currentAbort = new AbortController();
 
-	// UI feedback
-	Array.from(document.querySelectorAll(".algo-btn")).forEach((btn) =>
-		btn.classList.remove("active")
-	);
-	const buttons = Array.from(document.querySelectorAll("button.algo-btn"));
-	const button = buttons.find(
-		(btn) => btn.textContent === algorithms[key].label
-	);
-	button?.classList.add("active");
-
+	document.querySelectorAll(".algo-btn[data-algo]").forEach((btn) => btn.classList.remove("active"));
+	document.querySelector(`.algo-btn[data-algo="${key}"]`)?.classList.add("active");
 	document.getElementById("algo-note").textContent = algorithms[key].note;
 	showProgress(0, "Sending request to backend...");
 
-	const start = performance.now();
-
-	// Build request payload
-	const payload = {
-		courses: dataset.courses.map((c) => ({
-			code: c.code,
-			name: c.name,
-			enrollment: c.enrollment,
-		})),
-		students: dataset.students.map((s) => ({
-			id: s.id,
-			courses: s.courses,
-		})),
-		rooms: dataset.rooms.map((r) => ({
-			name: r.name,
-			capacity: r.capacity,
-		})),
-		timeslots: dataset.timeslotStrings.map((d) => ({ date: d })),
-	};
-
 	try {
-		const response = await fetch(`${API_BASE}/api/schedule/${key}`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(payload),
-			signal: currentAbort.signal,
-		});
+		const response = dataset.kind === "benchmark"
+			? await fetch(`${API_BASE}/api/schedule-benchmark/${key}/${encodeURIComponent(dataset.benchmarkName)}`, {
+				method: "POST",
+				signal: currentAbort.signal,
+			})
+			: await fetch(`${API_BASE}/api/schedule/${key}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(buildRequestPayload()),
+				signal: currentAbort.signal,
+			});
 
-		if (!response.ok) {
-			throw new Error(`Server error: ${response.status}`);
-		}
+		if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
-		// Parse SSE stream
 		const reader = response.body.getReader();
 		const decoder = new TextDecoder();
 		let buffer = "";
+		let eventType = null;
 
 		while (true) {
 			const { done, value } = await reader.read();
 			if (done) break;
-
 			buffer += decoder.decode(value, { stream: true });
 			const lines = buffer.split("\n");
-			buffer = lines.pop(); // keep incomplete line
+			buffer = lines.pop();
 
-			let eventType = null;
 			for (const line of lines) {
 				if (line.startsWith("event: ")) {
 					eventType = line.slice(7).trim();
 				} else if (line.startsWith("data: ") && eventType) {
 					const data = JSON.parse(line.slice(6));
-
-					if (eventType === "progress") {
-						showProgress(data.percent, data.message);
-					} else if (eventType === "result") {
-						handleResult(data, key, start);
-					} else if (eventType === "error") {
-						console.error("Algorithm error:", data.error);
-						hideProgress();
-					}
+					if (eventType === "progress") showProgress(data.percent, data.message);
+					if (eventType === "result") handleResult(data, key);
+					if (eventType === "error") throw new Error(data.error);
 					eventType = null;
 				}
 			}
 		}
 	} catch (err) {
 		if (err.name !== "AbortError") {
-			console.error("Schedule request error:", err);
-			document.getElementById("algo-note").textContent =
-				`Error: ${err.message}. Make sure the FastAPI server is running.`;
+			document.getElementById("algo-note").textContent = `Error: ${err.message}`;
 		}
 		hideProgress();
 	}
 }
 
-function handleResult(result, key, start) {
-	const end = performance.now();
+function handleResult(result, key) {
 	hideProgress();
+	if (result.dataset) {
+		dataset = {
+			...reshapeDataset(result.dataset),
+			kind: "benchmark",
+			benchmarkName: result.dataset.metadata?.source || dataset?.benchmarkName,
+		};
+		renderDataOverview(dataset);
+	}
+	const assignments = result.assignments.map((assignment) => {
+		const [datePart, timePart = "09:00"] = assignment.timeslot_date.split(" ");
+		return {
+			course: {
+				code: assignment.course_code,
+				name: assignment.course_name,
+				enrollment: assignment.enrollment,
+				durationMins: assignment.duration_minutes || 120,
+			},
+			room: { name: assignment.room_name, capacity: assignment.room_capacity },
+			slot: {
+				id: `${datePart}-${timePart.replace(":", "")}`,
+				day: datePart,
+				label: assignment.timeslot_date,
+				durationMins: 120,
+				index: dataset.timeslotStrings.indexOf(assignment.timeslot_date),
+			},
+		};
+	});
 
-	// Convert backend assignments to the format expected by ui.js
-	const assignments = result.assignments.map((a) => ({
-		course: {
-			code: a.course_code,
-			name: a.course_name,
-			enrollment: a.enrollment,
-			durationMins: 120,
-		},
-		room: { name: a.room_name, capacity: a.room_capacity },
-		slot: {
-			id: `${a.timeslot_date.split(" ")[0]}-${(a.timeslot_date.split(" ")[1] || "0900").replace(":", "")}`,
-			day: a.timeslot_date.split(" ")[0],
-			label: a.timeslot_date,
-			durationMins: 120,
-			index: dataset.timeslotStrings.indexOf(a.timeslot_date),
-		},
-	}));
-
-	// Compute simple penalties for display
-	const penalty = computePenalties(assignments);
-
+	latestSolution = { result, assignments, dataset, algorithm: key };
 	renderSchedule(assignments, {
 		label: algorithms[key].label,
-		time: result.elapsed_seconds * 1000,
-		penalty: penalty.total,
-		softViolations: penalty.softViolations,
+		metrics: result.metrics || {},
 		students: dataset.students,
 	});
-
 	buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
-	buildHeatmap(assignments, dataset.students);
-
+	buildHeatmap(assignments, dataset.students, result.metrics?.room_daily_load || []);
+	document.getElementById("export-controls").hidden = false;
 	document.getElementById("score-note").textContent =
-		`${assignments.length} assignments · Fitness: ${result.fitness} · Server time: ${result.elapsed_seconds}s · Algorithm: ${result.algorithm}`;
+		`${assignments.length} assignments | Fitness ${result.fitness} | Server time ${result.elapsed_seconds}s | ${result.algorithm}`;
 }
 
-function computePenalties(assignments) {
-	let hardViolations = 0;
-	let softViolations = 0;
-	const seen = new Set();
-
-	assignments.forEach((a) => {
-		const k = `${a.slot.id}-${a.room.name}`;
-		if (seen.has(k)) hardViolations++;
-		seen.add(k);
-	});
-
-	if (dataset.students) {
-		dataset.students.forEach((student) => {
-			const slots = assignments
-				.filter((a) => student.courses.includes(a.course.code))
-				.map((a) => a.slot.index)
-				.sort((a, b) => a - b);
-			for (let i = 0; i < slots.length - 1; i++) {
-				if (slots[i + 1] - slots[i] === 1) softViolations++;
-			}
-		});
-	}
-
-	return {
-		total: hardViolations * 50 + softViolations * 3,
-		hardViolations,
-		softViolations,
-	};
+function csvEscape(value) {
+	const text = String(value ?? "");
+	return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+function downloadText(filename, mime, text) {
+	const blob = new Blob([text], { type: mime });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+	if (!latestSolution) return;
+	const rows = [
+		["exam code", "exam name", "enrollment", "duration minutes", "room name", "room capacity", "timeslot"],
+		...latestSolution.assignments.map((assignment) => [
+			assignment.course.code,
+			assignment.course.name,
+			assignment.course.enrollment,
+			assignment.course.durationMins,
+			assignment.room.name,
+			assignment.room.capacity,
+			assignment.slot.label,
+		]),
+	];
+	downloadText("exam-schedule.csv", "text/csv", rows.map((row) => row.map(csvEscape).join(",")).join("\n"));
+}
+
+function exportJSON() {
+	if (!latestSolution) return;
+	downloadText("exam-schedule.json", "application/json", JSON.stringify(latestSolution.result, null, 2));
+}
 
 async function init() {
-	// Load default data
-	const raw = await fetch("data/fake-data.json").then((r) => r.json());
+	initThemeToggle();
+	initCSVUpload();
+	const defaultBenchmark = await initBenchmarkSelector();
 
-	// Add default timeslots
-	raw.timeslots = DEFAULT_TIMESLOTS;
-	dataset = reshapeDataset(raw);
-	renderDataOverview(dataset);
+	document.getElementById("export-csv-btn").addEventListener("click", exportCSV);
+	document.getElementById("export-json-btn").addEventListener("click", exportJSON);
 
-	// Build algorithm buttons
 	const controlBar = document.getElementById("strategy-controls");
 	Object.entries(algorithms).forEach(([key, config], index) => {
 		const button = document.createElement("button");
 		button.className = "algo-btn";
+		button.dataset.algo = key;
 		button.textContent = config.label;
 		button.addEventListener("click", () => runStrategy(key));
 		if (index === 0) button.classList.add("active");
 		controlBar.appendChild(button);
 	});
 
-	// Init features
-	initThemeToggle();
-	initCSVUpload();
-
-	// Run default algorithm
-	runStrategy("ga");
+	setBenchmarkDataset(defaultBenchmark, `Selected benchmark ${defaultBenchmark.name}.`);
+	runStrategy("greedy");
 }
 
-init();
+init().catch((err) => {
+	document.getElementById("score-note").textContent = `Initialization error: ${err.message}`;
+});

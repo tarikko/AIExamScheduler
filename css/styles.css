@@ -270,6 +270,30 @@ h3 {
   align-items: center;
 }
 
+.dataset-controls,
+.export-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 14px;
+}
+
+.dataset-controls label {
+  font-weight: 700;
+  color: var(--deep);
+}
+
+.dataset-controls select {
+  min-width: min(100%, 360px);
+  padding: 10px 12px;
+  border: 2px solid var(--grid-line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
 .algo-btn {
   border: 2px solid var(--accent);
   background: #fff;
@@ -569,6 +593,56 @@ h3 {
 
 .note-card li {
   margin-bottom: 4px;
+}
+
+.algorithm-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.guide-card {
+  background: var(--panel-strong);
+  border: 1px solid var(--grid-line);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+}
+
+.guide-card h3,
+.comparison-grid h3 {
+  margin: 0 0 8px;
+  color: var(--deep);
+  font-size: 1rem;
+}
+
+.guide-card p,
+.comparison-grid p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.guide-card ul {
+  margin: 12px 0 0 18px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.guide-card li {
+  margin-bottom: 6px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.comparison-grid > div {
+  background: var(--panel-strong);
+  border: 1px solid var(--grid-line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
 }
 
 ul {

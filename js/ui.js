@@ -2,28 +2,25 @@ export function renderDataOverview(data) {
 	const container = document.getElementById("data-overview");
 	container.innerHTML = "";
 
-	const enrollTotal = data.courses.reduce(
-		(sum, course) => sum + course.enrollment,
-		0
-	);
-	const roomTotal = data.rooms.length;
+	const enrolmentRows =
+		data.metadata.enrolment_rows ||
+		data.students.reduce((sum, student) => sum + student.courses.length, 0);
+	const totalSeats = data.rooms.reduce((sum, room) => sum + room.capacity, 0);
+	const examCount = data.courses.length || data.metadata.exam_count || 0;
+	const studentCount = data.students.length || data.metadata.student_count || 0;
+	const roomCount = data.rooms.length || data.metadata.room_count || 0;
+	const timeslotCount = data.timeSlots.length || data.metadata.timeslot_count || 0;
+	const originalRoomCount = data.metadata.original_room_count || roomCount;
+	const roomDetail = data.metadata.room_grouping === "virtual-room-groups"
+		? `${originalRoomCount} physical rooms grouped into ${roomCount} schedulable room blocks.`
+		: data.rooms.length ? `${totalSeats} total available seats.` : "Manifest room count.";
 
 	const cards = [
-		{
-			title: "Courses",
-			value: data.courses.length,
-			detail: "Course catalog + enrollments (Carter 1996 formatting).",
-		},
-		{
-			title: "Students",
-			value: data.students.length,
-			detail: "Enrollment log to compute conflicts.",
-		},
-		{
-			title: "Total Seats",
-			value: enrollTotal,
-			detail: `Room inventory × capacities (${roomTotal} rooms).`,
-		},
+		{ title: "Exams", value: examCount, detail: "Exam catalog from exams.csv." },
+		{ title: "Students", value: studentCount, detail: "Unique students from enrollements.csv." },
+		{ title: "Enrolments", value: enrolmentRows, detail: "Student-exam rows used for conflicts." },
+		{ title: "Rooms", value: roomCount, detail: roomDetail },
+		{ title: "Timeslots", value: timeslotCount, detail: "Available schedule positions." },
 	];
 
 	cards.forEach((card) => {
@@ -37,211 +34,124 @@ export function renderDataOverview(data) {
 export function renderSchedule(assignments, meta) {
 	const results = document.getElementById("schedule-results");
 	results.innerHTML = "";
+	const metrics = meta.metrics || {};
 
-	// Header
-	const header = document.createElement("div");
-	header.className = "grid-row";
-	header.innerHTML = `<div class="grid-cell slot-label">${meta.label}</div>`;
-	header.innerHTML += `<div class="grid-cell">Duration: ${meta.time.toFixed(
-		1
-	)}ms</div>`;
-	header.innerHTML += `<div class="grid-cell">Total Penalties: ${meta.penalty}</div>`;
-	results.appendChild(header);
+	const rows = [
+		["Algorithm", meta.label, `${metrics.assigned_count ?? assignments.length} assigned / ${metrics.unassigned_count ?? 0} unassigned`],
+		["Runtime", `${((metrics.elapsed_seconds || 0) * 1000).toFixed(1)} ms`, `Fitness ${metrics.fitness ?? 0}`],
+		["Hard Violations", metrics.hard_violations ?? 0, "Capacity, room-timeslot, student overlap, and unassigned exams"],
+		["Student Conflicts", metrics.student_conflict_count ?? 0, "Same-timeslot overlaps"],
+		["Room Conflicts", metrics.room_conflict_count ?? 0, "Duplicate room-timeslot assignments"],
+		["Stress Load", metrics.consecutive_exam_stress ?? 0, "Consecutive same-day exams for students"],
+		["Room Day Load", metrics.max_room_daily_exams ?? 0, "Max exams in one room on a single day"],
+		["Penalty", metrics.penalty ?? 0, "Combined display penalty"],
+	];
 
-	// Analyze Room Conflicts
-	const roomSlotMap = new Map();
-	const roomViolations = [];
-	assignments.forEach((a) => {
-		const key = `${a.slot.id}|${a.room.name}`;
-		if (!roomSlotMap.has(key)) roomSlotMap.set(key, []);
-		roomSlotMap.get(key).push(a.course.code);
-	});
-	roomSlotMap.forEach((courses, key) => {
-		if (courses.length > 1) {
-			const [slotId, roomName] = key.split("|");
-			roomViolations.push(
-				`${roomName} @ ${slotId}: ${courses.join(", ")}`
-			);
-		}
+	rows.forEach(([label, value, detail]) => {
+		const row = document.createElement("div");
+		row.className = "grid-row";
+		row.innerHTML = `<div class="grid-cell slot-label">${label}</div><div class="grid-cell">${value}</div><div class="grid-cell">${detail}</div>`;
+		results.appendChild(row);
 	});
 
-	// Analyze Student Overlaps
-	const studentSlotMap = new Map(); // student -> slot -> [courseCodes]
-	const studentOverlaps = [];
-	if (meta.students) {
-		meta.students.forEach((student) => {
-			const myAssignments = assignments.filter((a) =>
-				student.courses.includes(a.course.code)
-			);
-			const slots = new Map();
-			myAssignments.forEach((a) => {
-				if (!slots.has(a.slot.id)) slots.set(a.slot.id, []);
-				slots.get(a.slot.id).push(a.course.code);
-			});
-			slots.forEach((courses, slotId) => {
-				if (courses.length > 1) {
-					studentOverlaps.push(
-						`Student ${student.id} @ ${slotId}: ${courses.join(
-							" & "
-						)}`
-					);
-				}
-			});
-		});
-	}
-
-	// 1. Room Conflict Rows
-	if (roomViolations.length > 0) {
+	if ((metrics.unassigned_courses || []).length) {
 		const row = document.createElement("div");
 		row.className = "grid-row";
-		row.innerHTML = `<div class="grid-cell slot-label">ROOM CONFLICTS</div>`;
-		row.innerHTML += `<div class="grid-cell">${roomViolations.length} double-bookings</div>`;
-		row.innerHTML += `<div class="grid-cell">${roomViolations
-			.slice(0, 3)
-			.join("; ")}${roomViolations.length > 3 ? "..." : ""}</div>`;
+		row.innerHTML = `<div class="grid-cell slot-label">Unassigned</div><div class="grid-cell">${metrics.unassigned_courses.length}</div><div class="grid-cell">${metrics.unassigned_courses.slice(0, 8).join(", ")}</div>`;
 		results.appendChild(row);
 	}
-
-	// 2. Student Conflict Rows
-	if (studentOverlaps.length > 0) {
-		const row = document.createElement("div");
-		row.className = "grid-row";
-		row.innerHTML = `<div class="grid-cell slot-label">STUDENT CONFLICTS</div>`;
-		row.innerHTML += `<div class="grid-cell">${studentOverlaps.length} overlaps</div>`;
-		row.innerHTML += `<div class="grid-cell">${studentOverlaps
-			.slice(0, 2)
-			.join("; ")}${studentOverlaps.length > 2 ? "..." : ""}</div>`;
-		results.appendChild(row);
-	}
-
-	// 3. Stress Load Row
-	if (meta.softViolations > 0) {
-		const row = document.createElement("div");
-		row.className = "grid-row";
-		row.innerHTML = `<div class="grid-cell slot-label">STRESS LOAD</div>`;
-		row.innerHTML += `<div class="grid-cell">${meta.softViolations} consecutive</div>`;
-		row.innerHTML += `<div class="grid-cell">Students with back-to-back exams on same day</div>`;
-		results.appendChild(row);
-	}
-
-	// 4. Duration Violation Rows
-	const durationViolations = assignments.filter(
-		(a) => a.course.durationMins > a.slot.durationMins
-	);
-	if (durationViolations.length > 0) {
-		const row = document.createElement("div");
-		row.className = "grid-row";
-		row.innerHTML = `<div class="grid-cell slot-label">DURATION ERROR</div>`;
-		row.innerHTML += `<div class="grid-cell">${durationViolations.length} exceed slot</div>`;
-		row.innerHTML += `<div class="grid-cell">${durationViolations
-			.slice(0, 2)
-			.map((v) => `${v.course.code} (${v.course.durationMins}m)`)
-			.join("; ")}</div>`;
-		results.appendChild(row);
-	}
-
-	// 5. Success Row
-	if (
-		roomViolations.length === 0 &&
-		studentOverlaps.length === 0 &&
-		durationViolations.length === 0
-	) {
-		const row = document.createElement("div");
-		row.className = "grid-row";
-		row.innerHTML = `<div class="grid-cell slot-label">STATUS</div>`;
-		row.innerHTML += `<div class="grid-cell">FEASIBLE</div>`;
-		row.innerHTML += `<div class="grid-cell">No hard violations detected in the current schedule.</div>`;
-		results.appendChild(row);
-	}
-
-	document.getElementById("score-note").textContent =
-		"Calculated report based on " + assignments.length + " assignments.";
 }
 
 export function buildMasterGrid(assignments, rooms, timeSlots) {
 	const table = document.getElementById("master-grid");
 	table.innerHTML = "";
 
+	if (!rooms.length || !timeSlots.length) {
+		table.innerHTML = "<tbody><tr><td>No dataset loaded.</td></tr></tbody>";
+		return;
+	}
+
 	const thead = table.createTHead();
 	const headRow = thead.insertRow();
 	const anchor = document.createElement("th");
-	anchor.textContent = "Time Slot ↓ / Room →";
+	anchor.textContent = "Time Slot / Room";
 	headRow.appendChild(anchor);
 	rooms.forEach((room) => {
 		const th = document.createElement("th");
-		th.textContent = room.name;
+		th.textContent = `${room.name} (${room.capacity})`;
 		headRow.appendChild(th);
+	});
+
+	const byCell = new Map();
+	assignments.forEach((assignment) => {
+		byCell.set(`${assignment.slot.id}|${assignment.room.name}`, assignment);
 	});
 
 	const tbody = table.createTBody();
 	timeSlots.forEach((slot) => {
 		const row = tbody.insertRow();
 		const slotCell = row.insertCell();
-		slotCell.innerHTML = `<div>${slot.label}</div><small style="color:#666">${slot.durationMins}m slot</small>`;
+		slotCell.innerHTML = `<div>${slot.label}</div><small>${slot.durationMins}m slot</small>`;
 		slotCell.className = "slot-label";
 
 		rooms.forEach((room) => {
 			const cell = row.insertCell();
-			const match = assignments.find(
-				(assignment) =>
-					assignment.slot.id === slot.id &&
-					assignment.room.name === room.name
-			);
-			if (match) {
-				const isExceeding =
-					match.course.durationMins > slot.durationMins;
-				cell.innerHTML = `<strong>${match.course.code}</strong><br><small>${match.course.enrollment} stds | ${match.course.durationMins}m exam</small>`;
-				if (isExceeding) {
-					cell.style.border = "2px solid #ff5e5b";
-					cell.title = "EXAM EXCEEDS SLOT DURATION";
-				}
-			} else {
-				cell.textContent = "—";
+			const match = byCell.get(`${slot.id}|${room.name}`);
+			if (!match) {
+				cell.textContent = "-";
+				return;
+			}
+			cell.innerHTML = `<strong>${match.course.code}</strong><br><small>${match.course.enrollment} students | ${match.course.durationMins}m</small>`;
+			if (match.course.enrollment > room.capacity) {
+				cell.style.border = "2px solid var(--danger)";
+				cell.title = "Room capacity violation";
 			}
 		});
 	});
 }
 
-export function buildHeatmap(assignments, students) {
+export function buildHeatmap(assignments, students, roomDailyLoad) {
 	const container = document.getElementById("heatmap");
 	container.innerHTML = "";
-	const dayStress = {};
 
+	const studentDayStress = {};
 	students.forEach((student) => {
-		const assignedSlots = assignments
-			.filter((assignment) =>
-				student.courses.includes(assignment.course.code)
-			)
+		const slots = assignments
+			.filter((assignment) => student.courses.includes(assignment.course.code))
 			.map((assignment) => assignment.slot)
 			.sort((a, b) => a.index - b.index);
-		assignedSlots.forEach((slot, index) => {
-			const next = assignedSlots[index + 1];
-			if (
-				next &&
-				next.day === slot.day &&
-				next.index === slot.index + 1
-			) {
-				dayStress[slot.day] = (dayStress[slot.day] || 0) + 1;
+
+		for (let i = 0; i < slots.length - 1; i++) {
+			if (slots[i].day === slots[i + 1].day && slots[i + 1].index === slots[i].index + 1) {
+				studentDayStress[slots[i].day] = (studentDayStress[slots[i].day] || 0) + 1;
 			}
-		});
+		}
 	});
 
-	Object.entries(dayStress).forEach(([day, count]) => {
+	const roomDayStress = {};
+	(roomDailyLoad || []).forEach((row) => {
+		const key = `${row.day} | ${row.room}`;
+		roomDayStress[key] = row.exam_count;
+	});
+
+	const renderCell = (label, value, kind) => {
 		const cell = document.createElement("div");
-		const intensity = Math.min(100, count * 12);
+		const opacity = Math.min(0.9, 0.18 + value / 20);
 		cell.className = "heat-cell";
-		cell.style.background = `rgba(255, 94, 91, ${Math.min(
-			0.9,
-			intensity / 120
-		)})`;
-		cell.innerHTML = `${day}<div class="heat-bar" style="opacity:${Math.min(
-			1,
-			intensity / 120
-		)}"></div><small>${count} conflicts</small>`;
+		cell.style.background = kind === "room"
+			? `rgba(0, 184, 148, ${opacity})`
+			: `rgba(255, 94, 91, ${opacity})`;
+		cell.innerHTML = `<strong>${label}</strong><div class="heat-bar" style="opacity:${opacity}"></div><small>${value} ${kind === "room" ? "room exams" : "student chains"}</small>`;
 		container.appendChild(cell);
-	});
+	};
 
-	if (!Object.keys(dayStress).length) {
-		container.innerHTML = "<p>No consecutive exam conflicts detected.</p>";
+	Object.entries(studentDayStress).forEach(([day, count]) => renderCell(day, count, "student"));
+	Object.entries(roomDayStress)
+		.filter(([, count]) => count > 0)
+		.slice(0, 24)
+		.forEach(([label, count]) => renderCell(label, count, "room"));
+
+	if (!container.children.length) {
+		container.innerHTML = "<p>No schedule heatmap data yet.</p>";
 	}
 }

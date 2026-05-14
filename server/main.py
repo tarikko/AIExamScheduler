@@ -2,17 +2,15 @@
 FastAPI backend for the Intelligent University Exam Scheduling System.
 Provides SSE-streamed algorithm execution and CSV upload endpoints.
 """
-import csv
-import io
-import json
 import threading
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from server.data_loader import list_benchmark_folders, load_dataset_folder, load_uploaded_dataset
 from server.models import ScheduleRequest, Room, Timeslot
 from server.progress import ProgressTracker
 from server.algorithms.genetic import Chromosome, GeneticAlgorithm
@@ -34,10 +32,9 @@ app.add_middleware(
 
 # Serve static frontend files
 BASE_DIR = Path(__file__).resolve().parent.parent
+BENCHMARK_ROOT = BASE_DIR / "server" / "benchmark" / "exam_benchmark_new_format"
 app.mount("/css", StaticFiles(directory=str(BASE_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(BASE_DIR / "js")), name="js")
-app.mount("/data", StaticFiles(directory=str(BASE_DIR / "data")), name="data")
-app.mount("/benchmark", StaticFiles(directory=str(BASE_DIR / "benchmark")), name="benchmark")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -68,7 +65,93 @@ def _build_domain(request: ScheduleRequest):
     return rooms, timeslots, room_timeslot, course_codes, exam_students
 
 
-def _format_result(assignment, course_codes, courses, room_timeslot, fitness, elapsed, algorithm):
+def _request_from_dataset(data: dict) -> ScheduleRequest:
+    """Convert a loaded four-file dataset into a scheduling request."""
+    return ScheduleRequest(
+        courses=data["courses"],
+        students=data["students"],
+        rooms=data["rooms"],
+        timeslots=[{"date": value} for value in data["timeslots"]],
+    )
+
+
+def _compute_metrics(assignment, courses, students, room_timeslot, fitness, elapsed):
+    """Compute hard/soft violation and load metrics for a schedule."""
+    assignment = assignment or []
+    timeslot_order = {}
+    for _, slot in room_timeslot:
+        if slot.date not in timeslot_order:
+            timeslot_order[slot.date] = len(timeslot_order)
+
+    assigned_by_course = {}
+    room_slot_map = {}
+    room_daily_load = {}
+    capacity_violations = 0
+    unassigned = []
+
+    for exam_idx, course in enumerate(courses):
+        gene = assignment[exam_idx] if exam_idx < len(assignment) else None
+        if gene is None or not isinstance(gene, int) or gene < 0 or gene >= len(room_timeslot):
+            unassigned.append(course.code)
+            continue
+        room, slot = room_timeslot[gene]
+        assigned_by_course[course.code] = {"exam_idx": exam_idx, "room": room, "slot": slot}
+        if room.capacity < course.enrollment:
+            capacity_violations += 1
+        room_slot_map.setdefault((room.name, slot.date), []).append(course.code)
+        room_daily_load[(room.name, slot.day)] = room_daily_load.get((room.name, slot.day), 0) + 1
+
+    room_conflicts = sum(max(0, len(codes) - 1) for codes in room_slot_map.values())
+    student_conflicts = 0
+    consecutive_exam_stress = 0
+    student_day_load = {}
+
+    for student in students:
+        assigned_exams = []
+        for code in student.courses:
+            item = assigned_by_course.get(code)
+            if item:
+                assigned_exams.append((timeslot_order.get(item["slot"].date, 0), code, item["slot"]))
+
+        slot_courses = {}
+        for _, code, slot in assigned_exams:
+            slot_courses.setdefault(slot.date, []).append(code)
+        student_conflicts += sum(max(0, len(codes) - 1) for codes in slot_courses.values())
+
+        by_day = {}
+        for slot_index, code, slot in sorted(assigned_exams):
+            by_day.setdefault(slot.day, []).append((slot_index, code))
+        for day, exams in by_day.items():
+            student_day_load[(student.id, day)] = len(exams)
+            for left, right in zip(exams, exams[1:]):
+                if right[0] == left[0] + 1:
+                    consecutive_exam_stress += 1
+
+    hard_violations = capacity_violations + room_conflicts + student_conflicts + len(unassigned)
+    penalty = hard_violations * 100 + consecutive_exam_stress * 3
+    room_daily_load_rows = [
+        {"room": room, "day": day, "exam_count": count}
+        for (room, day), count in sorted(room_daily_load.items())
+    ]
+
+    return {
+        "elapsed_seconds": round(elapsed, 3),
+        "fitness": round(fitness, 6) if fitness else 0,
+        "penalty": penalty,
+        "assigned_count": len(assigned_by_course),
+        "unassigned_count": len(unassigned),
+        "unassigned_courses": unassigned,
+        "hard_violations": hard_violations,
+        "capacity_violations": capacity_violations,
+        "student_conflict_count": student_conflicts,
+        "room_conflict_count": room_conflicts,
+        "consecutive_exam_stress": consecutive_exam_stress,
+        "room_daily_load": room_daily_load_rows,
+        "max_room_daily_exams": max((row["exam_count"] for row in room_daily_load_rows), default=0),
+    }
+
+
+def _format_result(assignment, course_codes, courses, students, room_timeslot, fitness, elapsed, algorithm):
     """Convert algorithm output into JSON-serializable result dict."""
     assignments = []
     if assignment is not None:
@@ -81,18 +164,140 @@ def _format_result(assignment, course_codes, courses, room_timeslot, fitness, el
                     "course_code": course.code,
                     "course_name": course.name,
                     "enrollment": course.enrollment,
+                    "duration_minutes": course.duration_minutes,
                     "room_name": room.name,
                     "room_capacity": room.capacity,
                     "timeslot_date": slot.date,
                     "is_late": slot.is_late,
                 })
+    metrics = _compute_metrics(assignment, courses, students, room_timeslot, fitness, elapsed)
 
     return {
         "assignments": assignments,
         "fitness": round(fitness, 6) if fitness else 0,
         "elapsed_seconds": round(elapsed, 3),
         "algorithm": algorithm,
+        "metrics": metrics,
     }
+
+
+def _attach_dataset(result: dict, data: dict) -> dict:
+    """Include render-only dataset resources in a scheduling response."""
+    result["dataset"] = {
+        "courses": data["courses"],
+        "students": data["students"],
+        "rooms": data["rooms"],
+        "timeslots": data["timeslots"],
+        "metadata": data.get("metadata", {}),
+    }
+    return result
+
+
+def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressTracker, dataset: dict | None = None):
+    rooms, timeslots, room_timeslot, course_codes, exam_students = _build_domain(request)
+
+    def finish(result: dict):
+        tracker.finish(_attach_dataset(result, dataset) if dataset else result)
+
+    try:
+        import time
+        if key == "ga":
+            start = time.perf_counter()
+            domain = list(range(len(room_timeslot)))
+            population_size, generations, time_limit = _ga_runtime_config(request)
+            population = [
+                Chromosome(
+                    size=len(course_codes),
+                    domain=domain,
+                    mutation_probability=request.mutation_probability,
+                )
+                for _ in range(population_size)
+            ]
+            ga = GeneticAlgorithm(population, room_timeslot, exam_students)
+            best = ga.run(
+                generations=generations,
+                progress_callback=tracker.report_progress,
+                time_limit_sec=time_limit,
+            )
+            elapsed = time.perf_counter() - start
+            result = _format_result(
+                best.dna, course_codes, request.courses, request.students,
+                room_timeslot, ga.fitness(best), elapsed, "Genetic Algorithm"
+            )
+            finish(result)
+            return
+
+        if key == "csp":
+            csp = CSP(exam_students, room_timeslot)
+            assignment, fitness, nodes, elapsed = csp.run(
+                time_limit_sec=request.time_limit_sec,
+                progress_callback=tracker.report_progress,
+            )
+            result = _format_result(
+                assignment, course_codes, request.courses, request.students,
+                room_timeslot, fitness, elapsed, "CSP (MRV + Forward Checking)"
+            )
+            finish(result)
+            return
+
+        if key == "greedy":
+            start = time.perf_counter()
+            scheduler = GreedyScheduler(exam_students, room_timeslot, [c.enrollment for c in request.courses])
+            assignment, fitness = scheduler.run(progress_callback=tracker.report_progress)
+            elapsed = time.perf_counter() - start
+            result = _format_result(
+                assignment, course_codes, request.courses, request.students,
+                room_timeslot, fitness, elapsed, "Greedy (Degree + Enrollment)"
+            )
+            finish(result)
+            return
+
+        if key == "a_star":
+            scheduler = AStarScheduler(exam_students, room_timeslot, [c.enrollment for c in request.courses])
+            assignment, fitness, nodes, elapsed = scheduler.run(
+                time_limit_sec=request.time_limit_sec,
+                progress_callback=tracker.report_progress,
+            )
+            result = _format_result(
+                assignment, course_codes, request.courses, request.students,
+                room_timeslot, fitness, elapsed, "A* Search (Notebook Port)"
+            )
+            finish(result)
+            return
+
+        tracker.fail(f"Unknown algorithm: {key}")
+    except Exception as exc:
+        tracker.fail(str(exc))
+
+
+def _sse_response(tracker: ProgressTracker) -> StreamingResponse:
+    return StreamingResponse(
+        tracker.stream_sse(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def _ga_runtime_config(request: ScheduleRequest) -> tuple[int, int, float]:
+    """Cap GA work by dataset size so large benchmarks return predictably."""
+    exam_count = len(request.courses)
+    if exam_count <= 100:
+        max_population, max_generations, max_seconds = 80, 80, 5.0
+    elif exam_count <= 300:
+        max_population, max_generations, max_seconds = 60, 50, 8.0
+    elif exam_count <= 800:
+        max_population, max_generations, max_seconds = 35, 35, 10.0
+    else:
+        max_population, max_generations, max_seconds = 20, 20, 12.0
+
+    population = max(4, min(request.population_size, max_population))
+    generations = max(1, min(request.generations, max_generations))
+    time_limit = max(1.0, min(request.time_limit_sec, max_seconds))
+    return population, generations, time_limit
 
 
 # ─── Scheduling endpoints ────────────────────────────────────────────────────
@@ -109,26 +314,28 @@ async def run_genetic_algorithm(request: ScheduleRequest):
             start = time.perf_counter()
 
             domain = list(range(len(room_timeslot)))
+            population_size, generations, time_limit = _ga_runtime_config(request)
             population = [
                 Chromosome(
                     size=len(course_codes),
                     domain=domain,
                     mutation_probability=request.mutation_probability,
                 )
-                for _ in range(request.population_size)
+                for _ in range(population_size)
             ]
 
             ga = GeneticAlgorithm(population, room_timeslot, exam_students)
             best = ga.run(
-                generations=request.generations,
+                generations=generations,
                 progress_callback=tracker.report_progress,
+                time_limit_sec=time_limit,
             )
 
             elapsed = time.perf_counter() - start
             fitness = ga.fitness(best)
 
             result = _format_result(
-                best.dna, course_codes, request.courses,
+                best.dna, course_codes, request.courses, request.students,
                 room_timeslot, fitness, elapsed, "Genetic Algorithm"
             )
             tracker.finish(result)
@@ -164,7 +371,7 @@ async def run_csp_algorithm(request: ScheduleRequest):
             )
 
             result = _format_result(
-                assignment, course_codes, request.courses,
+                assignment, course_codes, request.courses, request.students,
                 room_timeslot, fitness, elapsed, "CSP (MRV + Forward Checking)"
             )
             tracker.finish(result)
@@ -205,8 +412,8 @@ async def run_greedy_algorithm(request: ScheduleRequest):
             elapsed = time.perf_counter() - start
 
             result = _format_result(
-                assignment, course_codes, request.courses,
-                room_timeslot, fitness, elapsed, "Greedy (Largest Enrollment First)"
+                assignment, course_codes, request.courses, request.students,
+                room_timeslot, fitness, elapsed, "Greedy (Degree + Enrollment)"
             )
             tracker.finish(result)
         except Exception as e:
@@ -242,8 +449,8 @@ async def run_astar_algorithm(request: ScheduleRequest):
             )
 
             result = _format_result(
-                assignment, course_codes, request.courses,
-                room_timeslot, fitness, elapsed, "A* Search (Conflict Density Heuristic)"
+                assignment, course_codes, request.courses, request.students,
+                room_timeslot, fitness, elapsed, "A* Search (Notebook Port)"
             )
             tracker.finish(result)
         except Exception as e:
@@ -263,72 +470,60 @@ async def run_astar_algorithm(request: ScheduleRequest):
     )
 
 
+@app.post("/api/schedule-benchmark/{algorithm}/{benchmark_name}")
+async def run_benchmark_algorithm(algorithm: str, benchmark_name: str):
+    """Run an algorithm against a server-side benchmark by name."""
+    safe_name = Path(benchmark_name).name
+    if safe_name != benchmark_name:
+        raise HTTPException(status_code=400, detail="Invalid benchmark name.")
+    if algorithm not in {"greedy", "csp", "ga", "a_star"}:
+        raise HTTPException(status_code=400, detail=f"Unknown algorithm: {algorithm}")
+
+    data = load_dataset_folder(BENCHMARK_ROOT / safe_name)
+    request = _request_from_dataset(data)
+    tracker = ProgressTracker()
+    thread = threading.Thread(
+        target=_run_algorithm_by_key,
+        args=(algorithm, request, tracker, data),
+        daemon=True,
+    )
+    thread.start()
+    return _sse_response(tracker)
+
+
 # ─── CSV Upload endpoint ─────────────────────────────────────────────────────
 
+@app.post("/api/upload-dataset")
+async def upload_dataset(files: list[UploadFile] = File(...)):
+    """Parse the canonical four-file CSV upload format."""
+    return await load_uploaded_dataset(files)
+
+
 @app.post("/api/upload-csv")
-async def upload_csv(file: UploadFile = File(...)):
-    """
-    Parse an uploaded CSV file into the internal data format.
+async def upload_csv_compat():
+    """Deprecated endpoint kept to return a clear migration error."""
+    raise HTTPException(
+        status_code=410,
+        detail="Single CSV upload is deprecated. Upload rooms.csv, timeslots.csv, exams.csv, and enrollements.csv.",
+    )
 
-    Expected CSV columns:
-      course_code, course_name, enrollment, student_id, room_name, room_capacity
 
-    Each row is one student-course enrollment.
-    Returns JSON in the same shape as fake-data.json.
-    """
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Only CSV files are accepted.")
+@app.get("/api/benchmarks")
+async def list_benchmarks():
+    """List benchmark folders from benchmark/exam_benchmark_new_format."""
+    return {"benchmarks": list_benchmark_folders(BENCHMARK_ROOT)}
 
-    content = await file.read()
-    try:
-        text = content.decode("utf-8")
-    except UnicodeDecodeError:
-        text = content.decode("latin-1")
 
-    reader = csv.DictReader(io.StringIO(text))
+@app.get("/api/benchmarks/{benchmark_name}")
+async def load_benchmark(benchmark_name: str):
+    """Load one benchmark folder by name."""
+    safe_name = Path(benchmark_name).name
+    if safe_name != benchmark_name:
+        raise HTTPException(status_code=400, detail="Invalid benchmark name.")
+    return load_dataset_folder(BENCHMARK_ROOT / safe_name)
 
-    courses_map = {}   # code -> {code, name, enrollment}
-    students_map = {}  # id   -> set of course codes
-    rooms_map = {}     # name -> capacity
-    timeslots_set = set()
 
-    for row in reader:
-        code = row.get("course_code", "").strip()
-        name = row.get("course_name", "").strip()
-        enrollment = row.get("enrollment", "0").strip()
-        student_id = row.get("student_id", "").strip()
-        room_name = row.get("room_name", "").strip()
-        room_cap = row.get("room_capacity", "0").strip()
-        timeslot = row.get("timeslot", "").strip()
-
-        if code and code not in courses_map:
-            courses_map[code] = {
-                "code": code,
-                "name": name or code,
-                "enrollment": int(enrollment) if enrollment else 0,
-            }
-
-        if student_id:
-            if student_id not in students_map:
-                students_map[student_id] = set()
-            if code:
-                students_map[student_id].add(code)
-
-        if room_name and room_name not in rooms_map:
-            rooms_map[room_name] = int(room_cap) if room_cap else 50
-
-        if timeslot:
-            timeslots_set.add(timeslot)
-
-    # Build response
-    courses = list(courses_map.values())
-    students = [{"id": sid, "courses": list(codes)} for sid, codes in students_map.items()]
-    rooms = [{"name": rn, "capacity": rc} for rn, rc in rooms_map.items()]
-    timeslots = sorted(timeslots_set)
-
-    return {
-        "courses": courses,
-        "students": students,
-        "rooms": rooms,
-        "timeslots": timeslots,
-    }
+@app.get("/api/default-dataset")
+async def load_default_dataset():
+    """Load a small new-format benchmark for the initial app state."""
+    return load_dataset_folder(BENCHMARK_ROOT / "random_sp_06_synthetic")

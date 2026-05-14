@@ -51,6 +51,7 @@ class CourseSchema(BaseModel):
     code: str
     name: str
     enrollment: int
+    duration_minutes: int = 120
 
 
 class StudentSchema(BaseModel):
@@ -80,6 +81,7 @@ class AssignmentResult(BaseModel):
     course_code: str
     course_name: str
     enrollment: int
+    duration_minutes: int
     room_name: str
     room_capacity: int
     timeslot_date: str
@@ -91,3 +93,4 @@ class ScheduleResponse(BaseModel):
     fitness: float
     elapsed_seconds: float
     algorithm: str
+    metrics: dict = {}

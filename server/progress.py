@@ -25,6 +25,7 @@ class ProgressTracker:
         self._error: Optional[str] = None
         self._lock = threading.Lock()
         self._event = asyncio.Event()
+        self._loop = asyncio.get_running_loop()
 
     # ── Called from the algorithm thread ──────────────────────────────────
 
@@ -34,8 +35,7 @@ class ProgressTracker:
             self._percent = min(100.0, max(0.0, percent))
             if message:
                 self._message = message
-        # Wake up the async generator
-        self._event.set()
+        self._wake()
 
     def finish(self, result: dict):
         """Mark the computation as complete with a result payload."""
@@ -43,14 +43,17 @@ class ProgressTracker:
             self._percent = 100.0
             self._done = True
             self._result = result
-        self._event.set()
+        self._wake()
 
     def fail(self, error: str):
         """Mark the computation as failed."""
         with self._lock:
             self._done = True
             self._error = error
-        self._event.set()
+        self._wake()
+
+    def _wake(self):
+        self._loop.call_soon_threadsafe(self._event.set)
 
     # ── Called from the async endpoint ────────────────────────────────────
 
