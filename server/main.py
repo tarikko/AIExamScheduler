@@ -11,9 +11,9 @@ from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from server.data_loader import list_benchmark_folders, load_dataset_folder, load_uploaded_dataset
-from server.models import ScheduleRequest, Room, Timeslot
+from server.models import ScheduleRequest, Room, Timeslot, Exam, AlgorithmSettings
 from server.progress import ProgressTracker
-from server.algorithms.genetic import Chromosome, GeneticAlgorithm
+from server.algorithms.genetic import GeneticAlgorithm
 from server.algorithms.csp import CSP
 from server.algorithms.greedy import GreedyScheduler
 from server.algorithms.astar import AStarScheduler
@@ -73,6 +73,20 @@ def _request_from_dataset(data: dict) -> ScheduleRequest:
         rooms=data["rooms"],
         timeslots=[{"date": value} for value in data["timeslots"]],
     )
+
+
+def _apply_algorithm_settings(request: ScheduleRequest, settings: AlgorithmSettings | None) -> ScheduleRequest:
+    if not settings:
+        return request
+    if settings.generations is not None:
+        request.generations = settings.generations
+    if settings.population_size is not None:
+        request.population_size = settings.population_size
+    if settings.mutation_probability is not None:
+        request.mutation_probability = settings.mutation_probability
+    if settings.time_limit_sec is not None:
+        request.time_limit_sec = settings.time_limit_sec
+    return request
 
 
 def _compute_metrics(assignment, courses, students, room_timeslot, fitness, elapsed):
@@ -203,22 +217,28 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
         import time
         if key == "ga":
             start = time.perf_counter()
-            domain = list(range(len(room_timeslot)))
             population_size, generations, time_limit = _ga_runtime_config(request)
-            population = [
-                Chromosome(
-                    size=len(course_codes),
-                    domain=domain,
-                    mutation_probability=request.mutation_probability,
+            exams = [
+                Exam(
+                    exam_code=course.code,
+                    exam_name=course.name,
+                    students=exam_students[index],
+                    exam_duration=course.duration_minutes,
                 )
-                for _ in range(population_size)
+                for index, course in enumerate(request.courses)
             ]
-            ga = GeneticAlgorithm(population, room_timeslot, exam_students)
-            best = ga.run(
-                generations=generations,
-                progress_callback=tracker.report_progress,
-                time_limit_sec=time_limit,
-            )
+            ga = GeneticAlgorithm(exams, room_timeslot, population_size=population_size)
+            if time_limit is None:
+                best = ga.run(
+                    max_generations=generations,
+                    progress_callback=tracker.report_progress,
+                )
+            else:
+                best = ga.run(
+                    max_generations=generations,
+                    time_limit=time_limit,
+                    progress_callback=tracker.report_progress,
+                )
             elapsed = time.perf_counter() - start
             result = _format_result(
                 best.dna, course_codes, request.courses, request.students,
@@ -230,7 +250,7 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
         if key == "csp":
             csp = CSP(exam_students, room_timeslot)
             assignment, fitness, nodes, elapsed = csp.run(
-                time_limit_sec=request.time_limit_sec,
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
                 progress_callback=tracker.report_progress,
             )
             result = _format_result(
@@ -255,7 +275,7 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
         if key == "a_star":
             scheduler = AStarScheduler(exam_students, room_timeslot, [c.enrollment for c in request.courses])
             assignment, fitness, nodes, elapsed = scheduler.run(
-                time_limit_sec=request.time_limit_sec,
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
                 progress_callback=tracker.report_progress,
             )
             result = _format_result(
@@ -282,22 +302,20 @@ def _sse_response(tracker: ProgressTracker) -> StreamingResponse:
     )
 
 
-def _ga_runtime_config(request: ScheduleRequest) -> tuple[int, int, float]:
-    """Cap GA work by dataset size so large benchmarks return predictably."""
-    exam_count = len(request.courses)
-    if exam_count <= 100:
-        max_population, max_generations, max_seconds = 80, 80, 5.0
-    elif exam_count <= 300:
-        max_population, max_generations, max_seconds = 60, 50, 8.0
-    elif exam_count <= 800:
-        max_population, max_generations, max_seconds = 35, 35, 10.0
-    else:
-        max_population, max_generations, max_seconds = 20, 20, 12.0
-
-    population = max(4, min(request.population_size, max_population))
-    generations = max(1, min(request.generations, max_generations))
-    time_limit = max(1.0, min(request.time_limit_sec, max_seconds))
+def _ga_runtime_config(request: ScheduleRequest) -> tuple[int, int, float | None]:
+    """Use GA settings from the request without dataset-size caps."""
+    population = max(2, int(request.population_size))
+    generations = max(1, int(request.generations))
+    time_limit = None
+    if request.time_limit_sec is not None:
+        time_limit = max(1.0, float(request.time_limit_sec))
     return population, generations, time_limit
+
+
+def _resolve_time_limit(value: float | None, default: float = 5.0) -> float:
+    if value is None:
+        return default
+    return max(1.0, float(value))
 
 
 # ─── Scheduling endpoints ────────────────────────────────────────────────────
@@ -313,23 +331,29 @@ async def run_genetic_algorithm(request: ScheduleRequest):
             import time
             start = time.perf_counter()
 
-            domain = list(range(len(room_timeslot)))
             population_size, generations, time_limit = _ga_runtime_config(request)
-            population = [
-                Chromosome(
-                    size=len(course_codes),
-                    domain=domain,
-                    mutation_probability=request.mutation_probability,
+            exams = [
+                Exam(
+                    exam_code=course.code,
+                    exam_name=course.name,
+                    students=exam_students[index],
+                    exam_duration=course.duration_minutes,
                 )
-                for _ in range(population_size)
+                for index, course in enumerate(request.courses)
             ]
 
-            ga = GeneticAlgorithm(population, room_timeslot, exam_students)
-            best = ga.run(
-                generations=generations,
-                progress_callback=tracker.report_progress,
-                time_limit_sec=time_limit,
-            )
+            ga = GeneticAlgorithm(exams, room_timeslot, population_size=population_size)
+            if time_limit is None:
+                best = ga.run(
+                    max_generations=generations,
+                    progress_callback=tracker.report_progress,
+                )
+            else:
+                best = ga.run(
+                    max_generations=generations,
+                    time_limit=time_limit,
+                    progress_callback=tracker.report_progress,
+                )
 
             elapsed = time.perf_counter() - start
             fitness = ga.fitness(best)
@@ -366,7 +390,7 @@ async def run_csp_algorithm(request: ScheduleRequest):
         try:
             csp = CSP(exam_students, room_timeslot)
             assignment, fitness, nodes, elapsed = csp.run(
-                time_limit_sec=request.time_limit_sec,
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
                 progress_callback=tracker.report_progress,
             )
 
@@ -444,7 +468,7 @@ async def run_astar_algorithm(request: ScheduleRequest):
             enrollments = [c.enrollment for c in request.courses]
             scheduler = AStarScheduler(exam_students, room_timeslot, enrollments)
             assignment, fitness, nodes, elapsed = scheduler.run(
-                time_limit_sec=request.time_limit_sec,
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
                 progress_callback=tracker.report_progress,
             )
 
@@ -471,7 +495,11 @@ async def run_astar_algorithm(request: ScheduleRequest):
 
 
 @app.post("/api/schedule-benchmark/{algorithm}/{benchmark_name}")
-async def run_benchmark_algorithm(algorithm: str, benchmark_name: str):
+async def run_benchmark_algorithm(
+    algorithm: str,
+    benchmark_name: str,
+    settings: AlgorithmSettings | None = None,
+):
     """Run an algorithm against a server-side benchmark by name."""
     safe_name = Path(benchmark_name).name
     if safe_name != benchmark_name:
@@ -480,7 +508,7 @@ async def run_benchmark_algorithm(algorithm: str, benchmark_name: str):
         raise HTTPException(status_code=400, detail=f"Unknown algorithm: {algorithm}")
 
     data = load_dataset_folder(BENCHMARK_ROOT / safe_name)
-    request = _request_from_dataset(data)
+    request = _apply_algorithm_settings(_request_from_dataset(data), settings)
     tracker = ProgressTracker()
     thread = threading.Thread(
         target=_run_algorithm_by_key,

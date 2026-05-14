@@ -321,6 +321,52 @@ h3 {
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
 }
 
+.ga-controls {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--grid-line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-strong);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.ga-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ga-field label {
+  font-weight: 600;
+  color: var(--deep);
+  font-size: 0.9rem;
+}
+
+.ga-field input {
+  padding: 10px 12px;
+  border: 2px solid var(--grid-line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  font: inherit;
+  color: var(--text);
+}
+
+.ga-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.run-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
 /* ─── CSV Upload ──────────────────────────────────────────────────────── */
 
 .csv-upload-area {

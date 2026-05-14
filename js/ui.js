@@ -39,7 +39,7 @@ export function renderSchedule(assignments, meta) {
 	const rows = [
 		["Algorithm", meta.label, `${metrics.assigned_count ?? assignments.length} assigned / ${metrics.unassigned_count ?? 0} unassigned`],
 		["Runtime", `${((metrics.elapsed_seconds || 0) * 1000).toFixed(1)} ms`, `Fitness ${metrics.fitness ?? 0}`],
-		["Hard Violations", metrics.hard_violations ?? 0, "Capacity, room-timeslot, student overlap, and unassigned exams"],
+		["Hard Violations", metrics.hard_violations ?? 0, `Capacity ${metrics.capacity_violations ?? 0} | room-timeslot, student overlap, and unassigned exams`],
 		["Student Conflicts", metrics.student_conflict_count ?? 0, "Same-timeslot overlaps"],
 		["Room Conflicts", metrics.room_conflict_count ?? 0, "Duplicate room-timeslot assignments"],
 		["Stress Load", metrics.consecutive_exam_stress ?? 0, "Consecutive same-day exams for students"],
@@ -101,7 +101,7 @@ export function buildMasterGrid(assignments, rooms, timeSlots) {
 				cell.textContent = "-";
 				return;
 			}
-			cell.innerHTML = `<strong>${match.course.code}</strong><br><small>${match.course.enrollment} students | ${match.course.durationMins}m</small>`;
+			cell.innerHTML = `<strong>${match.course.name}</strong><br><small>${match.course.enrollment} students | ${match.course.durationMins}m</small>`;
 			if (match.course.enrollment > room.capacity) {
 				cell.style.border = "2px solid var(--danger)";
 				cell.title = "Room capacity violation";

@@ -29,6 +29,11 @@ const algorithms = {
 let dataset = null;
 let currentAbort = null;
 let latestSolution = null;
+let gaControls = null;
+let runAlgoBtn = null;
+let gaGenerations = null;
+let gaPopulation = null;
+let gaTimeLimit = null;
 
 function showProgress(percent, message) {
 	const container = document.getElementById("progress-container");
@@ -162,7 +167,7 @@ async function initBenchmarkSelector() {
 	document.getElementById("load-benchmark-btn").addEventListener("click", async () => {
 		const benchmark = JSON.parse(select.selectedOptions[0].dataset.benchmark);
 		setBenchmarkDataset(benchmark, `Selected benchmark ${benchmark.name}.`);
-		runStrategy(getActiveAlgorithm());
+		setActiveAlgorithm(getActiveAlgorithm());
 	});
 
 	return defaultBenchmark;
@@ -195,7 +200,7 @@ function initCSVUpload() {
 			});
 			setDataset(raw, "Uploaded dataset loaded.");
 			filenameEl.textContent = `Loaded ${raw.metadata.exam_count} exams, ${raw.metadata.student_count} students, ${raw.metadata.room_count} rooms.`;
-			runStrategy(getActiveAlgorithm());
+			setActiveAlgorithm(getActiveAlgorithm());
 		} catch (err) {
 			filenameEl.textContent = `Error: ${err.message}`;
 		}
@@ -219,26 +224,64 @@ function buildRequestPayload() {
 	};
 }
 
+function readGaSettings() {
+	const settings = {};
+	const generations = Number.parseInt(gaGenerations?.value || "", 10);
+	const population = Number.parseInt(gaPopulation?.value || "", 10);
+	const timeLimit = gaTimeLimit?.value?.trim();
+
+	if (Number.isFinite(generations) && generations > 0) settings.generations = generations;
+	if (Number.isFinite(population) && population > 1) settings.population_size = population;
+	if (timeLimit) {
+		const parsed = Number.parseFloat(timeLimit);
+		if (Number.isFinite(parsed) && parsed > 0) settings.time_limit_sec = parsed;
+	}
+
+	return settings;
+}
+
+function applyGaSettings(payload, settings) {
+	if (!settings) return payload;
+	const next = { ...payload };
+	if (settings.generations) next.generations = settings.generations;
+	if (settings.population_size) next.population_size = settings.population_size;
+	if (settings.time_limit_sec) next.time_limit_sec = settings.time_limit_sec;
+	return next;
+}
+
+function setActiveAlgorithm(key) {
+	document.querySelectorAll(".algo-btn[data-algo]").forEach((btn) => btn.classList.remove("active"));
+	document.querySelector(`.algo-btn[data-algo="${key}"]`)?.classList.add("active");
+	const note = algorithms[key].note;
+	if (key === "ga") {
+		if (gaControls) gaControls.hidden = false;
+		document.getElementById("algo-note").textContent = `${note} Set parameters and click Run.`;
+		return;
+	}
+	if (gaControls) gaControls.hidden = true;
+	document.getElementById("algo-note").textContent = note;
+}
+
 async function runStrategy(key) {
 	if (!dataset) return;
 	if (currentAbort) currentAbort.abort();
 	currentAbort = new AbortController();
-
-	document.querySelectorAll(".algo-btn[data-algo]").forEach((btn) => btn.classList.remove("active"));
-	document.querySelector(`.algo-btn[data-algo="${key}"]`)?.classList.add("active");
-	document.getElementById("algo-note").textContent = algorithms[key].note;
+	const gaSettings = key === "ga" ? readGaSettings() : null;
+	if (key !== "ga") setActiveAlgorithm(key);
 	showProgress(0, "Sending request to backend...");
 
 	try {
 		const response = dataset.kind === "benchmark"
 			? await fetch(`${API_BASE}/api/schedule-benchmark/${key}/${encodeURIComponent(dataset.benchmarkName)}`, {
 				method: "POST",
+				headers: gaSettings ? { "Content-Type": "application/json" } : undefined,
+				body: gaSettings ? JSON.stringify(gaSettings) : undefined,
 				signal: currentAbort.signal,
 			})
 			: await fetch(`${API_BASE}/api/schedule/${key}`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(buildRequestPayload()),
+				body: JSON.stringify(applyGaSettings(buildRequestPayload(), gaSettings)),
 				signal: currentAbort.signal,
 			});
 
@@ -360,6 +403,11 @@ async function init() {
 	initThemeToggle();
 	initCSVUpload();
 	const defaultBenchmark = await initBenchmarkSelector();
+	gaControls = document.getElementById("ga-controls");
+	runAlgoBtn = document.getElementById("run-algo-btn");
+	gaGenerations = document.getElementById("ga-generations");
+	gaPopulation = document.getElementById("ga-population");
+	gaTimeLimit = document.getElementById("ga-time-limit");
 
 	document.getElementById("export-csv-btn").addEventListener("click", exportCSV);
 	document.getElementById("export-json-btn").addEventListener("click", exportJSON);
@@ -370,13 +418,17 @@ async function init() {
 		button.className = "algo-btn";
 		button.dataset.algo = key;
 		button.textContent = config.label;
-		button.addEventListener("click", () => runStrategy(key));
+		button.addEventListener("click", () => setActiveAlgorithm(key));
 		if (index === 0) button.classList.add("active");
 		controlBar.appendChild(button);
 	});
 
+	if (runAlgoBtn) {
+		runAlgoBtn.addEventListener("click", () => runStrategy(getActiveAlgorithm()));
+	}
+
 	setBenchmarkDataset(defaultBenchmark, `Selected benchmark ${defaultBenchmark.name}.`);
-	runStrategy("greedy");
+	setActiveAlgorithm("greedy");
 }
 
 init().catch((err) => {

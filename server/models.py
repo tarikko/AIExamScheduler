@@ -2,7 +2,7 @@
 Pydantic models and internal data classes for the exam scheduler.
 """
 from datetime import datetime, timezone, timedelta
-
+from pydantic import BaseModel
 # ─── Internal domain objects (used by algorithms) ─────────────────────────────
 
 class Room:
@@ -129,7 +129,15 @@ class ScheduleRequest(BaseModel):
     generations: int = 300
     population_size: int = 350
     mutation_probability: float = 0.08
-    time_limit_sec: float = 5.0
+    time_limit_sec: float | None = None
+
+
+class AlgorithmSettings(BaseModel):
+    """Optional algorithm settings for benchmark runs."""
+    generations: int | None = None
+    population_size: int | None = None
+    mutation_probability: float | None = None
+    time_limit_sec: float | None = None
 
 
 class AssignmentResult(BaseModel):

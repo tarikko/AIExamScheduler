@@ -1,6 +1,8 @@
 import random
 import time
-from utils import check_empty_domains
+
+from server.algorithms.utils import check_empty_domains, room_utilization_score
+from server.models import Exam, Timeslot, Room
 
 class Chromosome:
     def __init__(self,size,domain,mutation_probability,dna = None):
@@ -239,7 +241,15 @@ class GeneticAlgorithm:
 
         return self.population
 
-    def run(self, max_generations: int,time_limit: int = None,selection_method = "tournament",sample_size = 3,print_details = False):
+    def run(
+        self,
+        max_generations: int,
+        time_limit: int = None,
+        selection_method = "tournament",
+        sample_size = 3,
+        print_details = False,
+        progress_callback=None,
+    ):
         generation = 1
         start_time = time.perf_counter()
         time_limit = float('inf') if time_limit is None else time_limit
@@ -247,5 +257,8 @@ class GeneticAlgorithm:
             if print_details:
                 print("generation #",generation," best solution fitness value: ", max([self.fitness(p) for p in self.population]), "\n")
             self.selection(selection_method= selection_method,k = sample_size)
+            if progress_callback:
+                percent = min(100.0, (generation / max_generations) * 100.0) if max_generations else 100.0
+                progress_callback(percent, f"Generation {generation} / {max_generations}")
             generation += 1
         return max(self.population, key=self.fitness)

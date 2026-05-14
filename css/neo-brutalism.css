@@ -185,6 +185,23 @@
   border-color: #111;
 }
 
+[data-theme="neo-brutalism"] .ga-controls {
+  border: var(--nb-border);
+  box-shadow: 3px 3px 0 #111;
+  background: #fffde7;
+}
+
+[data-theme="neo-brutalism"] .ga-field input {
+  border: var(--nb-border);
+  box-shadow: 2px 2px 0 #111;
+  background: #fff;
+}
+
+[data-theme="neo-brutalism"] .ga-hint {
+  color: #333;
+  font-weight: 600;
+}
+
 /* ─── CSV Upload ──────────────────────────────────────────────────────── */
 
 [data-theme="neo-brutalism"] .csv-upload-area {
