@@ -582,8 +582,29 @@ h3 {
 
 .heatmap {
   display: flex;
-  gap: 12px;
+  gap: 28px;
   flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.heatmap-panel h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--deep);
+  margin: 0 0 6px;
+}
+
+.heatmap-desc {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(108,92,231,0.05) 0%, rgba(162,155,254,0.08) 100%);
+  border-left: 3px solid var(--accent-light);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-style: italic;
+  line-height: 1.6;
+  max-width: 520px;
 }
 
 .heat-cell {
@@ -594,6 +615,9 @@ h3 {
   font-weight: 700;
   font-size: 0.9rem;
   transition: var(--transition);
+  word-break: break-word;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .heat-cell:hover {
