@@ -14,6 +14,14 @@ class Room:
     def to_dict(self):
         return {"name": self.name, "capacity": self.capacity}
 
+    def __hash__(self):
+        return hash((self.name, self.capacity))
+
+    def __eq__(self, other):
+        if not isinstance(other, Room):
+            return NotImplemented
+        return (self.name, self.capacity) == (other.name, other.capacity)
+
 
 class Timeslot:
     """
@@ -32,7 +40,7 @@ class Timeslot:
         self.hour, self.minute = int(a[0]) , int(a[1])
         self.year, self.month, self.day = int(b[0]), int(b[1]), int(b[2])
 
-        self.is_late = self.hour >= 17
+        self.is_late = self.hour >= 15
 
     def to_epoch(self, tzinfo=timezone.utc):
         '''

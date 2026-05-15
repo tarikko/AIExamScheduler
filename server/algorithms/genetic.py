@@ -1,8 +1,7 @@
-import random
-import time
-
 from server.algorithms.utils import check_empty_domains, room_utilization_score
 from server.models import Exam, Timeslot, Room
+import random
+import time
 
 class Chromosome:
     def __init__(self,size,domain,mutation_probability,dna = None):
@@ -126,6 +125,7 @@ class GeneticAlgorithm:
         hard_duplicate_weight = 20.0
         hard_capacity_weight = 20.0
         hard_student_conflict_weight = 10.0
+        hard_room_conflict_weight = 10.0
         soft_consecutive_exams_weight = 3
         soft_late_exams_weight = 0.5
         soft_efficient_allocation_weight = 2.0
@@ -134,12 +134,15 @@ class GeneticAlgorithm:
         duplicate_pairs = 0
         capacity_violations = 0
         student_time_conflicts = 0
+        room_time_conflicts = 0
         consecutive_exams = 0
         late_exams = 0
         efficient_allocation_score = 0
 
         days = [0] * chromo.size
         is_late = [False] * chromo.size
+        room_assignments = {}
+        
 
         ## HARD CONSTRAINTS
         used = set()
@@ -151,6 +154,8 @@ class GeneticAlgorithm:
                 used.add(gene)
 
             room, slot = self.room_timeslot[gene]
+            room_assignments.setdefault(room, []).append((self.start_time[gene], self.end_time[i][gene]))
+
             if room.capacity < len(self.exams[i].students):
                 capacity_violations += 1
 
@@ -172,7 +177,20 @@ class GeneticAlgorithm:
                 if days[i] == days[j]:
                     consecutive_exams += overlap
 
-        hard_score =  -(hard_duplicate_weight * duplicate_pairs + hard_capacity_weight * capacity_violations + hard_student_conflict_weight * student_time_conflicts)
+        for assignments in room_assignments.values():
+            assignments.sort(key=lambda item: item[0])
+            active_end = -1
+            for start_time, end_time in assignments:
+                if start_time < active_end:
+                    room_time_conflicts += 1
+                else:
+                    active_end = end_time
+                    continue
+
+                if end_time > active_end:
+                    active_end = end_time
+
+        hard_score =  -(hard_duplicate_weight * duplicate_pairs + hard_capacity_weight * capacity_violations + hard_student_conflict_weight * student_time_conflicts + hard_room_conflict_weight * room_time_conflicts)
         soft_score =  soft_efficient_allocation_weight * efficient_allocation_score - soft_consecutive_exams_weight * consecutive_exams - soft_late_exams_weight * late_exams
         final_score = hard_score + soft_score
 

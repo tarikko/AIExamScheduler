@@ -40,16 +40,26 @@ class CSP:
                 raise ValueError(f"CSP cannot find a solution since there is an exam whose number of students surpasses the capacity of all rooms\nExam code is: {self.exams[e].code}")
 
     def binary_hard_constraint(self,e1,e2,v1,v2):
+        ''' 
+        e1: index of the first exam 
+        e2: index of the second exam
+        v1: index of pair (room,timeslot) to be assigned to e1
+        v2: index of pair (room,timeslot) to be assigned to e2
+        '''
+        # no two exams can have the same (room,timeslot)
         if v1 == v2:
             return False
+        # no student can sit for two different exams at the same time
         same_students = self.exam_overlap[e1][e2] > 0 
         exam_e1_start = self.start_time[v1]
         exam_e2_start = self.start_time[v2]
         exam_e1_end = self.end_time[e1][v1]
         exam_e2_end = self.end_time[e2][v2]
-        conflicting_timeslots = not (exam_e1_start >= exam_e2_end or exam_e2_start >= exam_e1_end)
-        if same_students and conflicting_timeslots:
+        conflicting_timeslots = not (exam_e1_start > exam_e2_end or exam_e2_start > exam_e1_end)
+        confilicting_rooms = conflicting_timeslots and (self.room_timeslot[v1][0] == self.room_timeslot[v2][0])
+        if (same_students and conflicting_timeslots) or confilicting_rooms:
             return False
+
         return True
 
     def unary_hard_constraint(self,e1,v1):
@@ -65,14 +75,18 @@ class CSP:
         return overlap
 
     def solution_evaluation(self,schedule):
+        # weights
         hard_duplicate_weight = 20.0
         hard_student_conflict_weight = 10.0
+        hard_room_conflict_weight = 10.0
         soft_consecutive_exams_weight = 3
         soft_late_exams_weight = 0.5
         soft_efficient_allocation_weight = 2.0
 
+        # scores
         duplicate_pairs = 0
         student_time_conflicts = 0
+        room_time_conflicts = 0
         consecutive_exams = 0
         late_exams = 0
         efficient_allocation_score = 0
@@ -81,38 +95,64 @@ class CSP:
         is_late = [False] * self.number_of_exams
 
         used = set()
+        room_assignments = {}
+
         for i in range(self.number_of_exams):
-            gene = schedule[i]
-            if gene is None: continue
-            if gene in used:
+            assigned = schedule[i]
+            
+            if assigned is None:
+                continue
+
+            if assigned in used:
                 duplicate_pairs += 1
             else:
-                used.add(gene)
+                used.add(assigned)
 
-            room, slot = self.room_timeslot[gene]
-            days[i] = slot.calendar_date
+            room, slot = self.room_timeslot[assigned]
+            room_assignments.setdefault(room, []).append((self.start_time[assigned], self.end_time[i][assigned]))
+
+            days[i] = slot.day
             is_late[i] = slot.is_late
             efficient_allocation_score += room_utilization_score(
                 room_capacity=room.capacity,
                 number_of_students=len(self.exams[i].students),
             )
+
             if is_late[i]:
                 late_exams += 1
 
         for i in range(self.number_of_exams):
-            if schedule[i] is None: continue
+            if schedule[i] is None:
+                continue
             for j, overlap in self.exam_neighbours[i]:
-                if schedule[j] is None: continue
+                if schedule[j] is None:
+                    continue
                 if max(self.start_time[schedule[i]], self.start_time[schedule[j]]) < min(self.end_time[i][schedule[i]], self.end_time[j][schedule[j]]):
                     student_time_conflicts += overlap
+
                 if days[i] == days[j]:
                     consecutive_exams += overlap
 
+        for assignments in room_assignments.values():
+            assignments.sort(key=lambda item: item[0])
+            active_end = -1
+            for start_time, end_time in assignments:
+                if start_time < active_end:
+                    room_time_conflicts += 1
+                else:
+                    active_end = end_time
+                    continue
+
+                if end_time > active_end:
+                    active_end = end_time
+
         unassigned_penalty = sum(1 for gene in schedule if gene is None) * 100.0
 
-        hard_score =  -(hard_duplicate_weight * duplicate_pairs + hard_student_conflict_weight * student_time_conflicts + unassigned_penalty)
+        hard_score =  -(hard_duplicate_weight * duplicate_pairs + hard_student_conflict_weight * student_time_conflicts + hard_room_conflict_weight * room_time_conflicts + unassigned_penalty)
         soft_score =  soft_efficient_allocation_weight * efficient_allocation_score - soft_consecutive_exams_weight * consecutive_exams - soft_late_exams_weight * late_exams
-        return hard_score + soft_score
+        final_score = hard_score + soft_score
+
+        return final_score
 
     def run(self, time_limit_sec=5.0, first_find=False, progress_callback: Optional[Callable] = None):
         start = time.perf_counter()
