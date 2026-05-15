@@ -130,6 +130,7 @@ class ScheduleRequest(BaseModel):
     population_size: int = 350
     mutation_probability: float = 0.08
     time_limit_sec: float | None = None
+    first_find: bool = False
 
 
 class AlgorithmSettings(BaseModel):
@@ -138,6 +139,7 @@ class AlgorithmSettings(BaseModel):
     population_size: int | None = None
     mutation_probability: float | None = None
     time_limit_sec: float | None = None
+    first_find: bool | None = None
 
 
 class AssignmentResult(BaseModel):

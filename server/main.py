@@ -86,6 +86,8 @@ def _apply_algorithm_settings(request: ScheduleRequest, settings: AlgorithmSetti
         request.mutation_probability = settings.mutation_probability
     if settings.time_limit_sec is not None:
         request.time_limit_sec = settings.time_limit_sec
+    if settings.first_find is not None:
+        request.first_find = settings.first_find
     return request
 
 
@@ -248,9 +250,19 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
             return
 
         if key == "csp":
-            csp = CSP(exam_students, room_timeslot)
+            exams = [
+                Exam(
+                    exam_code=course.code,
+                    exam_name=course.name,
+                    students=exam_students[index],
+                    exam_duration=course.duration_minutes,
+                )
+                for index, course in enumerate(request.courses)
+            ]
+            csp = CSP(exams, room_timeslot)
             assignment, fitness, nodes, elapsed = csp.run(
                 time_limit_sec=_resolve_time_limit(request.time_limit_sec),
+                first_find=request.first_find,
                 progress_callback=tracker.report_progress,
             )
             result = _format_result(
@@ -388,9 +400,21 @@ async def run_csp_algorithm(request: ScheduleRequest):
 
     def run_csp():
         try:
-            csp = CSP(exam_students, room_timeslot)
+            import time
+            start = time.perf_counter()
+            exams = [
+                Exam(
+                    exam_code=course.code,
+                    exam_name=course.name,
+                    students=exam_students[index],
+                    exam_duration=course.duration_minutes,
+                )
+                for index, course in enumerate(request.courses)
+            ]
+            csp = CSP(exams, room_timeslot)
             assignment, fitness, nodes, elapsed = csp.run(
                 time_limit_sec=_resolve_time_limit(request.time_limit_sec),
+                first_find=request.first_find,
                 progress_callback=tracker.report_progress,
             )
 

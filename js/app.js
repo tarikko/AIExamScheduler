@@ -29,11 +29,17 @@ const algorithms = {
 let dataset = null;
 let currentAbort = null;
 let latestSolution = null;
-let gaControls = null;
+let algoSettingsContainer = null;
 let runAlgoBtn = null;
 let gaGenerations = null;
 let gaPopulation = null;
-let gaTimeLimit = null;
+let algoTimeLimit = null;
+let cspFirstFind = null;
+let fieldGenerations = null;
+let fieldPopulation = null;
+let fieldTimeLimit = null;
+let fieldFirstFind = null;
+let algoHint = null;
 
 function showProgress(percent, message) {
 	const container = document.getElementById("progress-container");
@@ -228,7 +234,7 @@ function readGaSettings() {
 	const settings = {};
 	const generations = Number.parseInt(gaGenerations?.value || "", 10);
 	const population = Number.parseInt(gaPopulation?.value || "", 10);
-	const timeLimit = gaTimeLimit?.value?.trim();
+	const timeLimit = algoTimeLimit?.value?.trim();
 
 	if (Number.isFinite(generations) && generations > 0) settings.generations = generations;
 	if (Number.isFinite(population) && population > 1) settings.population_size = population;
@@ -240,12 +246,24 @@ function readGaSettings() {
 	return settings;
 }
 
-function applyGaSettings(payload, settings) {
+function readCspSettings() {
+	const settings = {};
+	const timeLimit = algoTimeLimit?.value?.trim();
+	if (timeLimit) {
+		const parsed = Number.parseFloat(timeLimit);
+		if (Number.isFinite(parsed) && parsed > 0) settings.time_limit_sec = parsed;
+	}
+	settings.first_find = cspFirstFind?.checked || false;
+	return settings;
+}
+
+function applySettings(payload, settings) {
 	if (!settings) return payload;
 	const next = { ...payload };
 	if (settings.generations) next.generations = settings.generations;
 	if (settings.population_size) next.population_size = settings.population_size;
 	if (settings.time_limit_sec) next.time_limit_sec = settings.time_limit_sec;
+	if (settings.first_find !== undefined) next.first_find = settings.first_find;
 	return next;
 }
 
@@ -253,12 +271,21 @@ function setActiveAlgorithm(key) {
 	document.querySelectorAll(".algo-btn[data-algo]").forEach((btn) => btn.classList.remove("active"));
 	document.querySelector(`.algo-btn[data-algo="${key}"]`)?.classList.add("active");
 	const note = algorithms[key].note;
-	if (key === "ga") {
-		if (gaControls) gaControls.hidden = false;
+	
+	if (key === "ga" || key === "csp") {
+		if (algoSettingsContainer) algoSettingsContainer.style.display = "grid";
+		
+		if (fieldGenerations) fieldGenerations.style.display = key === "ga" ? "flex" : "none";
+		if (fieldPopulation) fieldPopulation.style.display = key === "ga" ? "flex" : "none";
+		if (fieldFirstFind) fieldFirstFind.style.display = key === "csp" ? "flex" : "none";
+		if (fieldTimeLimit) fieldTimeLimit.style.display = "flex"; // both have time limit
+		
+		if (algoHint) algoHint.textContent = `Adjust the ${key.toUpperCase()} settings, then click Run.`;
 		document.getElementById("algo-note").textContent = `${note} Set parameters and click Run.`;
 		return;
 	}
-	if (gaControls) gaControls.hidden = true;
+	
+	if (algoSettingsContainer) algoSettingsContainer.style.display = "none";
 	document.getElementById("algo-note").textContent = note;
 }
 
@@ -266,22 +293,22 @@ async function runStrategy(key) {
 	if (!dataset) return;
 	if (currentAbort) currentAbort.abort();
 	currentAbort = new AbortController();
-	const gaSettings = key === "ga" ? readGaSettings() : null;
-	if (key !== "ga") setActiveAlgorithm(key);
+	const settings = key === "ga" ? readGaSettings() : (key === "csp" ? readCspSettings() : null);
+	if (key !== "ga" && key !== "csp") setActiveAlgorithm(key);
 	showProgress(0, "Sending request to backend...");
 
 	try {
 		const response = dataset.kind === "benchmark"
 			? await fetch(`${API_BASE}/api/schedule-benchmark/${key}/${encodeURIComponent(dataset.benchmarkName)}`, {
 				method: "POST",
-				headers: gaSettings ? { "Content-Type": "application/json" } : undefined,
-				body: gaSettings ? JSON.stringify(gaSettings) : undefined,
+				headers: settings ? { "Content-Type": "application/json" } : undefined,
+				body: settings ? JSON.stringify(settings) : undefined,
 				signal: currentAbort.signal,
 			})
 			: await fetch(`${API_BASE}/api/schedule/${key}`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(applyGaSettings(buildRequestPayload(), gaSettings)),
+				body: JSON.stringify(applySettings(buildRequestPayload(), settings)),
 				signal: currentAbort.signal,
 			});
 
@@ -403,11 +430,18 @@ async function init() {
 	initThemeToggle();
 	initCSVUpload();
 	const defaultBenchmark = await initBenchmarkSelector();
-	gaControls = document.getElementById("ga-controls");
+	algoSettingsContainer = document.getElementById("algo-settings");
 	runAlgoBtn = document.getElementById("run-algo-btn");
 	gaGenerations = document.getElementById("ga-generations");
 	gaPopulation = document.getElementById("ga-population");
-	gaTimeLimit = document.getElementById("ga-time-limit");
+	algoTimeLimit = document.getElementById("algo-time-limit");
+	cspFirstFind = document.getElementById("csp-first-find");
+	
+	fieldGenerations = document.getElementById("field-generations");
+	fieldPopulation = document.getElementById("field-population");
+	fieldTimeLimit = document.getElementById("field-time-limit");
+	fieldFirstFind = document.getElementById("field-first-find");
+	algoHint = document.getElementById("algo-hint");
 
 	document.getElementById("export-csv-btn").addEventListener("click", exportCSV);
 	document.getElementById("export-json-btn").addEventListener("click", exportJSON);
