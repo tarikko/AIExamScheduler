@@ -15,7 +15,7 @@ from server.models import ScheduleRequest, Room, Timeslot, Exam, AlgorithmSettin
 from server.progress import ProgressTracker
 from server.algorithms.genetic import GeneticAlgorithm
 from server.algorithms.csp import CSP
-from server.algorithms.greedy import GreedyScheduler
+from server.algorithms.greedy import GreedyScheduler, format_greedy_result
 from server.algorithms.astar import AStarScheduler
 
 # ─── App setup ────────────────────────────────────────────────────────────────
@@ -274,14 +274,36 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
 
         if key == "greedy":
             start = time.perf_counter()
-            scheduler = GreedyScheduler(exam_students, room_timeslot, [c.enrollment for c in request.courses])
-            assignment, fitness = scheduler.run(progress_callback=tracker.report_progress)
-            elapsed = time.perf_counter() - start
-            result = _format_result(
-                assignment, course_codes, request.courses, request.students,
-                room_timeslot, fitness, elapsed, "Greedy (Degree + Enrollment)"
+            scheduler = GreedyScheduler(
+                request.courses, request.students, rooms, timeslots, room_timeslot
             )
-            finish(result)
+            greedy_schedule, penalty, status, room_cap_map = scheduler.run(
+                progress_callback=tracker.report_progress
+            )
+            elapsed = time.perf_counter() - start
+            result = format_greedy_result(
+                greedy_schedule, penalty, status,
+                request.courses, request.students,
+                elapsed, "Greedy (Largest Enrollment)",
+                room_capacity_map=room_cap_map,
+            )
+            # Inject the actual timeslots and rooms used by the greedy
+            # algorithm into the dataset so the frontend grid shows them
+            if dataset:
+                greedy_ts = sorted({a["timeslot_date"] for a in result.get("assignments", [])})
+                greedy_rooms = []
+                seen_rooms = set()
+                for a in result.get("assignments", []):
+                    rname = a["room_name"]
+                    if rname not in seen_rooms:
+                        seen_rooms.add(rname)
+                        greedy_rooms.append({"name": rname, "capacity": a["room_capacity"]})
+                greedy_dataset = dict(dataset)
+                greedy_dataset["timeslots"] = greedy_ts
+                greedy_dataset["rooms"] = greedy_rooms if greedy_rooms else dataset["rooms"]
+                tracker.finish(_attach_dataset(result, greedy_dataset))
+            else:
+                tracker.finish(result)
             return
 
         if key == "a_star":
@@ -451,17 +473,20 @@ async def run_greedy_algorithm(request: ScheduleRequest):
             import time
             start = time.perf_counter()
 
-            enrollments = [c.enrollment for c in request.courses]
-            scheduler = GreedyScheduler(exam_students, room_timeslot, enrollments)
-            assignment, fitness = scheduler.run(
+            scheduler = GreedyScheduler(
+                request.courses, request.students, rooms, timeslots, room_timeslot
+            )
+            greedy_schedule, penalty, status, room_cap_map = scheduler.run(
                 progress_callback=tracker.report_progress,
             )
 
             elapsed = time.perf_counter() - start
 
-            result = _format_result(
-                assignment, course_codes, request.courses, request.students,
-                room_timeslot, fitness, elapsed, "Greedy (Degree + Enrollment)"
+            result = format_greedy_result(
+                greedy_schedule, penalty, status,
+                request.courses, request.students,
+                elapsed, "Greedy (Largest Enrollment)",
+                room_capacity_map=room_cap_map,
             )
             tracker.finish(result)
         except Exception as e:
