@@ -39,9 +39,10 @@ export function renderSchedule(assignments, meta) {
 	const rows = [
 		["Algorithm", meta.label, `${metrics.assigned_count ?? assignments.length} assigned / ${metrics.unassigned_count ?? 0} unassigned`],
 		["Runtime", `${((metrics.elapsed_seconds || 0) * 1000).toFixed(1)} ms`, `Fitness ${metrics.fitness ?? 0}`],
-		["Hard Violations", metrics.hard_violations ?? 0, `Capacity ${metrics.capacity_violations ?? 0} | room-timeslot, student overlap, and unassigned exams`],
+		["Hard Violations", metrics.hard_violations ?? 0, `Capacity, room-timeslot, student overlap, and unassigned exams`],
 		["Student Conflicts", metrics.student_conflict_count ?? 0, "Same-timeslot overlaps"],
 		["Room Conflicts", metrics.room_conflict_count ?? 0, "Duplicate room-timeslot assignments"],
+		["Room Capacity Exceeded", metrics.capacity_violations ?? 0, "Exams where the number of students exceeded the room capacity"],
 		["Stress Load", metrics.consecutive_exam_stress ?? 0, "Consecutive same-day exams for students"],
 		["Room Day Load", metrics.max_room_daily_exams ?? 0, "Max exams in one room on a single day"],
 		["Penalty", metrics.penalty ?? 0, "Combined display penalty"],
