@@ -135,24 +135,137 @@ export function buildHeatmap(assignments, students, roomDailyLoad) {
 		roomDayStress[key] = row.exam_count;
 	});
 
-	const renderCell = (label, value, kind) => {
+	const maxStudentStress = Math.max(1, ...Object.values(studentDayStress));
+	const maxRoomLoad = Math.max(1, ...Object.values(roomDayStress));
+
+	const renderCell = (label, value, kind, maxValue) => {
 		const cell = document.createElement("div");
 		const opacity = Math.min(0.9, 0.18 + value / 20);
+		const intensity = Math.min(1, maxValue ? value / maxValue : 0);
+		const hue = 220 - intensity * 160;
+		const saturation = 78;
+		const lightness = 34 + (1 - intensity) * 18;
 		cell.className = "heat-cell";
-		cell.style.background = kind === "room"
-			? `rgba(0, 184, 148, ${opacity})`
-			: `rgba(255, 94, 91, ${opacity})`;
+		cell.style.background = `hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity})`;
 		cell.innerHTML = `<strong>${label}</strong><div class="heat-bar" style="opacity:${opacity}"></div><small>${value} ${kind === "room" ? "room exams" : "student chains"}</small>`;
 		container.appendChild(cell);
 	};
 
-	Object.entries(studentDayStress).forEach(([day, count]) => renderCell(day, count, "student"));
+	Object.entries(studentDayStress).forEach(([day, count]) => renderCell(day, count, "student", maxStudentStress));
 	Object.entries(roomDayStress)
 		.filter(([, count]) => count > 0)
 		.slice(0, 24)
-		.forEach(([label, count]) => renderCell(label, count, "room"));
+		.forEach(([label, count]) => renderCell(label, count, "room", maxRoomLoad));
 
 	if (!container.children.length) {
 		container.innerHTML = "<p>No schedule heatmap data yet.</p>";
+	}
+}
+
+function resolveHeatmapTarget(target) {
+	if (!target) return document.getElementById("heatmap");
+	if (typeof target === "string") return document.querySelector(target);
+	return target;
+}
+
+function renderHeatCell(container, day, value, label, maxValue) {
+	const cell = document.createElement("div");
+	const opacity = Math.min(0.9, 0.18 + value / 20);
+	const intensity = Math.min(1, maxValue ? value / maxValue : 0);
+	const hue = 220 - intensity * 160;
+	const saturation = 78;
+	const lightness = 34 + (1 - intensity) * 18;
+	cell.className = "heat-cell";
+	cell.style.background = `hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity})`;
+	cell.innerHTML = `<strong>${day}</strong><div class="heat-bar" style="opacity:${opacity}"></div><small>${value} ${label}</small>`;
+	container.appendChild(cell);
+}
+
+export function buildHeatmapByStudentsStress(assignments, students, days, target) {
+	const container = resolveHeatmapTarget(target);
+	if (!container) return;
+	container.innerHTML = "";
+
+	const orderedDays = Array.from(new Set(days || []));
+	if (!orderedDays.length) {
+		container.innerHTML = "<p>No schedule heatmap data yet.</p>";
+		return;
+	}
+
+	const dayStress = new Map(orderedDays.map((day) => [day, 0]));
+
+	for (const student of students || []) {
+		const slots = (assignments || [])
+			.filter((assignment) => (student.courses || []).includes(assignment.course.code))
+			.map((assignment) => assignment.slot)
+			.sort((left, right) => left.index - right.index);
+
+		for (let index = 0; index < slots.length - 1; index++) {
+			const current = slots[index];
+			const next = slots[index + 1];
+			if (current.day === next.day && next.index === current.index + 1) {
+				dayStress.set(current.day, (dayStress.get(current.day) || 0) + 1);
+			}
+		}
+	}
+
+	const maxStress = Math.max(1, ...orderedDays.map((day) => dayStress.get(day) || 0));
+
+	for (const day of orderedDays) {
+		renderHeatCell(container, day, dayStress.get(day) || 0, "student stress events", maxStress);
+	}
+}
+
+export function buildHeatmapByNumberOfExamsPerDay(assignments, days, target) {
+	const container = resolveHeatmapTarget(target);
+	if (!container) return;
+	container.innerHTML = "";
+
+	const orderedDays = Array.from(new Set(days || []));
+	if (!orderedDays.length) {
+		container.innerHTML = "<p>No schedule heatmap data yet.</p>";
+		return;
+	}
+
+	const examCountPerDay = new Map(orderedDays.map((day) => [day, 0]));
+	for (const assignment of assignments || []) {
+		const day = assignment?.slot?.day;
+		if (!examCountPerDay.has(day)) {
+			examCountPerDay.set(day, 0);
+		}
+		examCountPerDay.set(day, (examCountPerDay.get(day) || 0) + 1);
+	}
+
+	const maxExamsPerDay = Math.max(1, ...orderedDays.map((day) => examCountPerDay.get(day) || 0));
+
+	for (const day of orderedDays) {
+		renderHeatCell(container, day, examCountPerDay.get(day) || 0, "exams", maxExamsPerDay);
+	}
+}
+
+export function buildHeatmapByRoomLoad(roomDailyLoad, target) {
+	const container = resolveHeatmapTarget(target);
+	if (!container) return;
+	container.innerHTML = "";
+
+	if (!roomDailyLoad || !roomDailyLoad.length) {
+		container.innerHTML = "<p>No room load data available.</p>";
+		return;
+	}
+
+	const roomTotals = new Map();
+	for (const row of roomDailyLoad) {
+		const roomName = row.room || "Unknown Room";
+		const current = roomTotals.get(roomName) || 0;
+		roomTotals.set(roomName, current + (row.exam_count || 0));
+	}
+
+	const maxLoad = Math.max(1, ...roomTotals.values());
+	const orderedRooms = Array.from(roomTotals.keys()).sort((left, right) =>
+		left.localeCompare(right)
+	);
+
+	for (const roomName of orderedRooms) {
+		renderHeatCell(container, roomName, roomTotals.get(roomName) || 0, "exams", maxLoad);
 	}
 }

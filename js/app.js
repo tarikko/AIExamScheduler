@@ -3,6 +3,9 @@ import {
 	renderSchedule,
 	buildMasterGrid,
 	buildHeatmap,
+	buildHeatmapByStudentsStress,
+	buildHeatmapByNumberOfExamsPerDay,
+	buildHeatmapByRoomLoad,
 } from "./ui.js";
 
 const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
@@ -40,6 +43,7 @@ let fieldPopulation = null;
 let fieldTimeLimit = null;
 let fieldFirstFind = null;
 let algoHint = null;
+let heatmapType = "both";
 
 function showProgress(percent, message) {
 	const container = document.getElementById("progress-container");
@@ -108,6 +112,64 @@ function reshapeDataset(raw) {
 		timeslotStrings,
 		metadata: raw.metadata || {},
 	};
+}
+
+function getScheduleDays(currentDataset = dataset) {
+	const seen = new Set();
+	return (currentDataset?.timeSlots || [])
+		.map((slot) => slot.day)
+		.filter((day) => day && !seen.has(day) && seen.add(day));
+}
+
+function renderHeatmapPanels(assignments, students, days, roomDailyLoad) {
+	const container = document.getElementById("heatmap");
+	container.innerHTML = "";
+
+	if (!days.length) {
+		container.innerHTML = "<p>No schedule heatmap data yet.</p>";
+		return;
+	}
+
+	const allPanels = [
+		{
+			key: "exams",
+			title: "Exams per Day",
+			render: (target) => buildHeatmapByNumberOfExamsPerDay(assignments, days, target),
+		},
+		{
+			key: "stress",
+			title: "Student Stress by Day",
+			render: (target) => buildHeatmapByStudentsStress(assignments, students, days, target),
+		},
+		{
+			key: "rooms",
+			title: "Room Total Load",
+			render: (target) => buildHeatmapByRoomLoad(roomDailyLoad, target),
+		},
+	];
+
+	const panels = allPanels.filter(
+		(panel) => heatmapType === "both" || heatmapType === panel.key
+	);
+
+	panels.forEach((panel) => {
+		const wrapper = document.createElement("div");
+		wrapper.className = "heatmap-panel";
+		wrapper.style.cssText = "display:flex;flex-direction:column;gap:12px;flex:1 1 320px;min-width:280px;";
+
+		const title = document.createElement("h3");
+		title.textContent = panel.title;
+		title.style.margin = "0";
+
+		const target = document.createElement("div");
+		target.className = "heatmap-grid";
+		target.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;";
+
+		wrapper.appendChild(title);
+		wrapper.appendChild(target);
+		container.appendChild(wrapper);
+		panel.render(target);
+	});
 }
 
 function setDataset(raw, statusText) {
@@ -383,7 +445,12 @@ function handleResult(result, key) {
 		students: dataset.students,
 	});
 	buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
-	buildHeatmap(assignments, dataset.students, result.metrics?.room_daily_load || []);
+	renderHeatmapPanels(
+		assignments,
+		dataset.students,
+		getScheduleDays(),
+		result.metrics?.room_daily_load || []
+	);
 	document.getElementById("export-controls").hidden = false;
 	document.getElementById("score-note").textContent =
 		`${assignments.length} assignments | Fitness ${result.fitness} | Server time ${result.elapsed_seconds}s | ${result.algorithm}`;
@@ -442,6 +509,28 @@ async function init() {
 	fieldTimeLimit = document.getElementById("field-time-limit");
 	fieldFirstFind = document.getElementById("field-first-find");
 	algoHint = document.getElementById("algo-hint");
+
+	const heatmapSelector = document.getElementById("heatmap-selector");
+	if (heatmapSelector) {
+		heatmapSelector.innerHTML = `
+			<option value="both">All Heatmaps</option>
+			<option value="exams">Exams per Day</option>
+			<option value="stress">Student Stress by Day</option>
+			<option value="rooms">Room Total Load</option>
+		`;
+		heatmapSelector.value = "both";
+		heatmapSelector.addEventListener("change", (e) => {
+			heatmapType = e.target.value;
+			if (latestSolution) {
+				renderHeatmapPanels(
+					latestSolution.assignments,
+					latestSolution.dataset.students,
+					getScheduleDays(),
+					latestSolution.result.metrics?.room_daily_load || []
+				);
+			}
+		});
+	}
 
 	document.getElementById("export-csv-btn").addEventListener("click", exportCSV);
 	document.getElementById("export-json-btn").addEventListener("click", exportJSON);
