@@ -2,11 +2,13 @@
 Greedy scheduler adapter — bridges the user's original ``schedule`` class
 (from notebook/greedy.py) to the backend's data model used by main.py.
 
-The only changes to the user's code are:
-  • ``def init(`` → ``def __init__(``  (Python constructor fix)
-  • Indentation fix on ``for entry in current_assignments:`` in calculate_g
-  • ``Returns`` docstring line re-indented
-Nothing else in the algorithm logic has been touched.
+Performance-optimised version:
+  • Cached penalty_before in _pick_best_placement (OPT 1)
+  • Incremental penalty via running daily_load (OPT 2)
+  • schedule_by_day index for conflict/room checks (OPT 3)
+  • Early exit per (day, slot) before room loop (OPT 4)
+  • Reuse _exam_students in adapter (OPT 5)
+  • Per-exam progress callback (OPT 6)
 """
 from math import ceil
 import heapq
@@ -49,6 +51,8 @@ class schedule:
         return studentToModule
 
     def is_room_free(self, room_name, day, start_t, end_t, current_schedule):
+        # OPT 3: current_schedule is now the day-subset when called from
+        # find_valid_placements, so we skip the day== check in that path.
         for assigned in current_schedule:
             if assigned['day'] == day:
                 if start_t < assigned['end'] and assigned['start'] < end_t:
@@ -70,6 +74,7 @@ class schedule:
         return round(hours + fraction, 2)
 
     def has_student_conflict(self, new_exam_students, day, start_t, end_t, current_schedule):
+        # OPT 3: current_schedule may already be filtered to this day
         for assigned in current_schedule:
             if assigned['day'] == day:
                 if start_t < assigned['end'] + 1 and assigned['start'] - 1 < end_t:
@@ -77,24 +82,32 @@ class schedule:
                         return True
         return False
 
-    def find_valid_placements(self, exam, student_set, current_assignments):
+    def find_valid_placements(self, exam, student_set, current_assignments,
+                              schedule_by_day=None):
         rooms_dict = self.room_capacity
         time_slots = self.slots
         days = self.days
         possible_placements = []
 
         for day in days:
+            # OPT 3: use the day-indexed subset instead of full schedule
+            day_entries = (schedule_by_day.get(day, [])
+                          if schedule_by_day is not None
+                          else current_assignments)
+
             for start_t in time_slots:
                 end_t = round(start_t + self.exam_duration[exam], 2)
                 if end_t > self.end_f:
                     continue
 
-                if self.has_student_conflict(student_set, day, start_t, end_t, current_assignments):
+                # OPT 4: check student conflict once per (day, slot);
+                # if conflict, skip all rooms for this slot entirely
+                if self.has_student_conflict(student_set, day, start_t, end_t, day_entries):
                     continue
 
                 available_rooms = []
                 for r_name, r_cap in rooms_dict.items():
-                    if self.is_room_free(r_name, day, start_t, end_t, current_assignments):
+                    if self.is_room_free(r_name, day, start_t, end_t, day_entries):
                         available_rooms.append((r_name, r_cap))
 
                 available_rooms.sort(key=lambda x: x[1], reverse=True)
@@ -136,6 +149,41 @@ class schedule:
                     total_penalty += 2
 
         return total_penalty
+
+    # OPT 2: incremental penalty — O(students_in_exam) instead of O(schedule)
+    def calculate_incremental_penalty(self, placement, current_daily_load):
+        """
+        Compute the penalty *delta* introduced by adding ``placement``
+        to a schedule whose running daily_load is ``current_daily_load``.
+
+        Does NOT mutate current_daily_load.
+        """
+        day = placement['day']
+        day_load = current_daily_load.get(day, {})
+        delta = 0
+        for student in placement['students']:
+            count = day_load.get(student, 0)
+            new_count = count + 1
+            # Subtract old contribution, add new contribution
+            if new_count > 2:
+                delta += 50
+            elif new_count == 2:
+                delta += 2
+            # (if count was already >2 the old penalty was already counted;
+            #  we only care about the *marginal* change here which is the
+            #  same logic as the original: each entry's students are scored
+            #  independently in calculate_g)
+        return delta
+
+    @staticmethod
+    def _update_daily_load(daily_load, placement):
+        """Update the running daily_load dict after committing a placement."""
+        day = placement['day']
+        if day not in daily_load:
+            daily_load[day] = {}
+        day_dict = daily_load[day]
+        for student in placement['students']:
+            day_dict[student] = day_dict.get(student, 0) + 1
 
     # ------------------------------------------------------------------
     # Greedy-specific ordering methods
@@ -191,7 +239,7 @@ class schedule:
     # Greedy Search — core algorithm
     # ------------------------------------------------------------------
 
-    def greedySearch(self, strategy='largest_enrollment'):
+    def greedySearch(self, strategy='largest_enrollment', progress_callback=None):
         """
         Greedy Search for exam scheduling.
 
@@ -233,27 +281,50 @@ class schedule:
             ordered_exams = self.order_by_largest_enrollment()
 
         current_schedule = []
+        # OPT 2: running daily load — updated after each commit
+        running_daily_load = {}
+        # OPT 3: schedule indexed by day
+        schedule_by_day = {}
+
+        total = len(ordered_exams)
 
         # Step 2: greedily assign each exam
-        for exam in ordered_exams:
+        for step, exam in enumerate(ordered_exams):
             student_set = self.studentAssignedToModule[exam]
 
             # Find every valid placement for this exam given what is already assigned
-            valid_placements = self.find_valid_placements(exam, student_set, current_schedule)
+            valid_placements = self.find_valid_placements(
+                exam, student_set, current_schedule,
+                schedule_by_day=schedule_by_day,
+            )
 
             if not valid_placements:
                 # Hard failure: greedy cannot backtrack
                 return "No solution found"
 
             # Step 3: pick the best placement with a local cost function
-            best_placement = self._pick_best_placement(valid_placements, current_schedule)
+            best_placement = self._pick_best_placement(
+                valid_placements, current_schedule, running_daily_load
+            )
             current_schedule.append(best_placement)
+
+            # OPT 2: update running daily load
+            self._update_daily_load(running_daily_load, best_placement)
+            # OPT 3: update schedule_by_day index
+            day = best_placement['day']
+            schedule_by_day.setdefault(day, []).append(best_placement)
+
+            # OPT 6: per-exam progress reporting
+            if progress_callback:
+                pct = 15 + int(80 * (step + 1) / total)
+                progress_callback(pct, f"Placed {step+1}/{total} exams...")
 
         # All exams placed successfully
         self.schedule = current_schedule
         return "Success!"
 
-    def _pick_best_placement(self, valid_placements, current_schedule):
+    def _pick_best_placement(self, valid_placements, current_schedule,
+                             running_daily_load=None):
         """
         Local scoring function: choose the placement that minimises the
         soft-constraint penalty added by assigning this exam.
@@ -267,20 +338,27 @@ class schedule:
         marginal cost of each candidate placement for the current exam,
         which keeps the greedy step O(placements).
         """
-        def placement_score(placement):
-            # Simulate adding this placement and measure the penalty delta
-            trial_schedule = current_schedule + [placement]
-            penalty_after  = self.calculate_g(trial_schedule)
-            penalty_before = self.calculate_g(current_schedule)
-            incremental_penalty = penalty_after - penalty_before
-
-            # Tie-break 1: prefer earlier days (day index in sorted self.days)
-            day_index = self.days.index(placement['day']) if placement['day'] in self.days else 999
-
-            # Tie-break 2: prefer earlier start time
-            start_time = placement['start']
-
-            return (incremental_penalty, day_index, start_time)
+        # OPT 1 + OPT 2: use incremental penalty with running daily_load
+        if running_daily_load is not None:
+            def placement_score(placement):
+                incremental_penalty = self.calculate_incremental_penalty(
+                    placement, running_daily_load
+                )
+                day_index = (self.days.index(placement['day'])
+                             if placement['day'] in self.days else 999)
+                start_time = placement['start']
+                return (incremental_penalty, day_index, start_time)
+        else:
+            # Fallback: original behaviour
+            penalty_before = self.calculate_g(current_schedule)  # OPT 1: cached
+            def placement_score(placement):
+                trial_schedule = current_schedule + [placement]
+                penalty_after = self.calculate_g(trial_schedule)
+                incremental_penalty = penalty_after - penalty_before
+                day_index = (self.days.index(placement['day'])
+                             if placement['day'] in self.days else 999)
+                start_time = placement['start']
+                return (incremental_penalty, day_index, start_time)
 
         return min(valid_placements, key=placement_score)
 
@@ -323,6 +401,9 @@ class GreedyScheduler:
 
         # Build course lookup
         self._course_info = {c.code: c for c in courses}
+
+        # OPT 5: pre-build exam_student_pairs once; reused in run()
+        self._exam_student_pairs = self._build_exam_student_pairs()
 
     # ── Input transformation ──────────────────────────────────────────
 
@@ -449,7 +530,8 @@ class GreedyScheduler:
             progress_callback(5, "Preparing data for Greedy Search...")
 
         # 1. Transform interface data → user's expected format
-        exam_student_pairs = self._build_exam_student_pairs()
+        # OPT 5: reuse pre-built pairs from __init__
+        exam_student_pairs = self._exam_student_pairs
         room_capacity_dict = self._build_room_capacity()
         from_time, to_time = self._derive_time_range()
         days_str = self._derive_days_string()
@@ -471,8 +553,10 @@ class GreedyScheduler:
         if progress_callback:
             progress_callback(15, f"Running Greedy Search ({strategy})...")
 
-        # 3. Run the user's greedySearch
-        result_str = sched.greedySearch(strategy=strategy)
+        # 3. Run the user's greedySearch — OPT 6: pass progress_callback
+        result_str = sched.greedySearch(
+            strategy=strategy, progress_callback=progress_callback
+        )
 
         if progress_callback:
             progress_callback(95, "Greedy Search complete.")

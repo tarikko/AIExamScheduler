@@ -105,7 +105,7 @@ class schedule:
         total_penalty = 0
         daily_load = {}
 
-for entry in current_assignments:
+        for entry in current_assignments:
             day = entry['day']
             if day not in daily_load:
                 daily_load[day] = {}
