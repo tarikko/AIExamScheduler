@@ -349,20 +349,20 @@ function setActiveAlgorithm(key) {
 	document.querySelectorAll(".algo-btn[data-algo]").forEach((btn) => btn.classList.remove("active"));
 	document.querySelector(`.algo-btn[data-algo="${key}"]`)?.classList.add("active");
 	const note = algorithms[key].note;
-	
+
 	if (key === "ga" || key === "csp") {
 		if (algoSettingsContainer) algoSettingsContainer.style.display = "grid";
-		
+
 		if (fieldGenerations) fieldGenerations.style.display = key === "ga" ? "flex" : "none";
 		if (fieldPopulation) fieldPopulation.style.display = key === "ga" ? "flex" : "none";
 		if (fieldFirstFind) fieldFirstFind.style.display = key === "csp" ? "flex" : "none";
 		if (fieldTimeLimit) fieldTimeLimit.style.display = "flex"; // both have time limit
-		
+
 		if (algoHint) algoHint.textContent = `Adjust the ${key.toUpperCase()} settings, then click Run.`;
 		document.getElementById("algo-note").textContent = `${note} Set parameters and click Run.`;
 		return;
 	}
-	
+
 	if (algoSettingsContainer) algoSettingsContainer.style.display = "none";
 	document.getElementById("algo-note").textContent = note;
 }
@@ -460,9 +460,35 @@ function handleResult(result, key) {
 		metrics: result.metrics || {},
 		students: dataset.students,
 	});
-	
+
 	if (key === "a_star") {
-		buildAStarCards(assignments);
+		// A* generates its own custom timeslots and composite rooms, 
+		// so we extract them directly from the assignments to build the table.
+		const dynamicRooms = [];
+		const dynamicSlots = [];
+		const seenRooms = new Set();
+		const seenSlots = new Set();
+
+		assignments.forEach(a => {
+			if (!seenRooms.has(a.room.name)) {
+				seenRooms.add(a.room.name);
+				dynamicRooms.push(a.room);
+			}
+			if (!seenSlots.has(a.slot.id)) {
+				seenSlots.add(a.slot.id);
+				dynamicSlots.push(a.slot);
+			}
+		});
+
+		// Sort slots chronologically for the table rows
+		dynamicSlots.sort((a, b) => a.label.localeCompare(b.label));
+
+		// Fix the index property so consecutive slots can be detected by the heatmap logic
+		dynamicSlots.forEach((slot, i) => {
+			slot.index = i;
+		});
+
+		buildMasterGrid(assignments, dynamicRooms, dynamicSlots);
 	} else {
 		buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
 	}
@@ -524,7 +550,7 @@ async function init() {
 	gaPopulation = document.getElementById("ga-population");
 	algoTimeLimit = document.getElementById("algo-time-limit");
 	cspFirstFind = document.getElementById("csp-first-find");
-	
+
 	fieldGenerations = document.getElementById("field-generations");
 	fieldPopulation = document.getElementById("field-population");
 	fieldTimeLimit = document.getElementById("field-time-limit");
