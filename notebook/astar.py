@@ -1,9 +1,10 @@
 from math import ceil
+from math import floor
 import heapq
 
 
 class schedule:
-    def init(self, exam_student, room_capacity, from_time, to_time, days_str, exam_duration):
+    def __init__(self, exam_student, room_capacity, from_time, to_time, days_str, exam_duration):
         self.exam_student = exam_student
         self.room_capacity = room_capacity
         self.from_time = from_time
@@ -30,7 +31,7 @@ class schedule:
     def is_room_free(self, room_name, day, start_t, end_t, current_schedule):
         for assigned in current_schedule:
             if assigned['day'] == day:
-                if start_t < assigned['end'] and assigned['start'] < end_t:
+                if start_t < assigned['end']+1.0 and assigned['start']-1.0 < end_t:
                     if room_name in assigned['rooms']:
                         return False
         return True
@@ -56,7 +57,12 @@ class schedule:
     def has_student_conflict(self, new_exam_students, day, start_t, end_t, current_schedule):
         for assigned in current_schedule:
             if assigned['day'] == day:
-                if start_t < assigned['end']+1 and assigned['start']-1 < end_t:
+            # We check if the time intervals (with a 1h buffer) overlap.
+            # A conflict exists if:
+            # New exam starts before (Existing exam ends + 1 hour)
+            # AND
+            # Existing exam starts before (New exam ends + 1 hour)
+                if start_t < (assigned['end'] ) and assigned['start'] < (end_t ):
                     if not new_exam_students.isdisjoint(assigned['students']):
                         return True
         return False
@@ -102,16 +108,16 @@ class schedule:
 
         return possible_placements
 
-def calculate_g(self,self, current_assignments):
+    def calculate_g(self, current_assignments):
         """
         FIX 2: g(n) should represent the COST incurred so far — penalties only.
-        The original code used len(current_assignments) + penalty, which made
+        The original code used `len(current_assignments) + penalty`, which made
         nodes with MORE exams placed appear MORE expensive. In the A* min-heap this
         caused nearly-complete schedules to be explored LAST, because their g was
         higher than shallow nodes. Penalty-only g(n) correctly guides the search:
         0 cost for clean assignments, positive cost only when constraints are violated.
 
-        FIX 3: The if/elif penalty block was indented inside for student, which
+        FIX 3: The if/elif penalty block was indented inside `for student`, which
         is correct for per-student tracking. No change needed there — but it is now
         dedented to sit clearly at the per-student level, outside the entry loop,
         to make the intent unambiguous.
@@ -165,7 +171,7 @@ def calculate_g(self,self, current_assignments):
         different insertion orders.
 
         The heap tuple is  (f_score, tie_breaker_count, schedule, remaining).
-        count is always unique, so heapq never needs to compare schedules or
+        `count` is always unique, so heapq never needs to compare schedules or
         remaining lists (which would crash on list-of-dicts).
         """
         all_modules = list(self.studentAssignedToModule.keys())
@@ -195,7 +201,7 @@ def calculate_g(self,self, current_assignments):
             other_remaining = remaining[1:]
             student_set = self.studentAssignedToModule[next_mod]
 
-valid_placements = self.find_valid_placements(next_mod, student_set, current_schedule)
+            valid_placements = self.find_valid_placements(next_mod, student_set, current_schedule)
 
             for placement in valid_placements:
                 new_schedule = current_schedule + [placement]
@@ -222,20 +228,20 @@ def test():
     #]
 
     room_capacities = {
-    "room_1": 80, 
-    "room_2": 80, 
-    "room_3": 80, 
-    "room_4": 80, 
-    "room_5": 80, 
-    "room_6": 80, 
-    "room_7": 80, 
-    "room_8": 80, 
+    "room_1": 120, 
+    "room_2": 120, 
+    "room_3": 120, 
+    "room_4": 120, 
+    "room_5": 120, 
+    "room_6": 120, 
+    "room_7": 120, 
+    "room_8": 120, 
     }
 
     # Tight timeline to force conflicts
     from_time = "09:00"
-    to_time = "17:00" 
-    days_str = "Mond-01-06-2006, Tues02-06-2006, Wed-03-06-2006, Thur-04-06-2006, Sat-06-06-2006, Sun-07-06-2006, Mon-08-06-2006"
+    to_time = "15:00" 
+    days_str = "Mond-01-06-2006, Tues-02-06-2006, Wed-03-06-2006, Thur-04-06-2006, Sat-06-06-2006, Sun-07-06-2006, Mon-08-06-2006"
 
     durations = {
     "Linear_algebra": 2.0, 
@@ -333,7 +339,8 @@ def test():
             exam_student_data.append((module,f"S3_{i}"))
 
     for module in fourth_year_modules:
-        for i in range (1,181):exam_student_data.append((module,f"S4_{i}"))
+        for i in range (1,181):
+            exam_student_data.append((module,f"S4_{i}"))
 
     for module in fifth_year_modules:
         for i in range (1,101):
@@ -344,17 +351,36 @@ def test():
         from_time, to_time, days_str, durations
     )
 
-    print("Starting A* Search...")
+    print("🚀 Starting A* Search... This may take a moment given the dataset size.")
     result = my_scheduler.AstarSearch()
 
     if result == "Success!":
-        print("\n--- Final Schedule Found ---")
-        for entry in sorted(my_scheduler.schedule, key=lambda e: (e['day'], e['start'])):
-            print(f"Exam: {entry['exam']:<15} | Day: {entry['day']:<10} | "
-                  f"Time: {entry['start']}-{entry['end']} | Rooms: {entry['rooms']} |Students:{entry['students']}")
+        print("\n" + "="*100)
+        print(f"{'EXAM NAME':<40} | {'DAY':<18} | {'TIME':<15} | {'ROOMS'}")
+        print("="*100)
+        
+        # Sort by day and then by start time for a clear calendar view
+        sorted_schedule = sorted(my_scheduler.schedule, key=lambda e: (e['day'], e['start']))
+        
+        for entry in sorted_schedule:
+            # --- Format Start Time ---
+            s_hour = int(entry['start'])
+            s_min = int(round((entry['start'] - s_hour) * 60))
+            start_clock = f"{s_hour:02d}:{s_min:02d}"
+            
+            # --- Format End Time ---
+            e_hour = int(entry['end'])
+            e_min = int(round((entry['end'] - e_hour) * 60))
+            end_clock = f"{e_hour:02d}:{e_min:02d}"
+            
+            rooms_str = ", ".join(entry['rooms'])
+            
+            print(f"{entry['exam']:<40} | {entry['day']:<18} | {start_clock} - {end_clock} | {rooms_str}")
+            
+        print("="*100)
     else:
-        print("No valid schedule could be found with these constraints.")
+        print("❌ No valid schedule could be found with these constraints.")
 
 
-if name == "main":
+if __name__ == "__main__":
     test()

@@ -2,6 +2,7 @@ import {
 	renderDataOverview,
 	renderSchedule,
 	buildMasterGrid,
+	buildAStarCards,
 	buildHeatmap,
 	buildHeatmapByStudentsStress,
 	buildHeatmapByNumberOfExamsPerDay,
@@ -114,11 +115,17 @@ function reshapeDataset(raw) {
 	};
 }
 
-function getScheduleDays(currentDataset = dataset) {
+function getScheduleDays(currentDataset = dataset, assignments = []) {
 	const seen = new Set();
-	return (currentDataset?.timeSlots || [])
+	// Prefer dataset timeSlots; fall back to days extracted from live assignments
+	const fromSlots = (currentDataset?.timeSlots || [])
 		.map((slot) => slot.day)
 		.filter((day) => day && !seen.has(day) && seen.add(day));
+	if (fromSlots.length) return fromSlots;
+	const seen2 = new Set();
+	return (assignments || [])
+		.map((a) => a?.slot?.day)
+		.filter((day) => day && !seen2.has(day) && seen2.add(day));
 }
 
 function renderHeatmapPanels(assignments, students, days, roomDailyLoad) {
@@ -134,16 +141,19 @@ function renderHeatmapPanels(assignments, students, days, roomDailyLoad) {
 		{
 			key: "exams",
 			title: "Exams per Day",
+			description: "Total number of exams scheduled on each calendar day. Darker cells signal heavier days — a very dark day means many exams are packed together, which can strain room availability and invigilator capacity. Aim for an even spread across all days.",
 			render: (target) => buildHeatmapByNumberOfExamsPerDay(assignments, days, target),
 		},
 		{
 			key: "stress",
 			title: "Student Stress by Day",
+			description: "Counts how many students have two or more exams on the same day. Each occurrence means a student moves directly from one exam room to another with no break. Higher values indicate more student stress. A score of 0 is ideal — it means no student faces consecutive exams on that day.",
 			render: (target) => buildHeatmapByStudentsStress(assignments, students, days, target),
 		},
 		{
 			key: "rooms",
 			title: "Room Total Load",
+			description: "Total number of exams each room hosts across all scheduled days. Darker cells indicate rooms that are used most heavily. Rooms with very high load may become logistical bottlenecks, while lightly-used rooms represent wasted capacity. A balanced schedule spreads the load evenly.",
 			render: (target) => buildHeatmapByRoomLoad(roomDailyLoad, target),
 		},
 	];
@@ -166,6 +176,12 @@ function renderHeatmapPanels(assignments, students, days, roomDailyLoad) {
 		target.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;";
 
 		wrapper.appendChild(title);
+		if (heatmapType !== "both") {
+			const desc = document.createElement("p");
+			desc.className = "heatmap-desc";
+			desc.textContent = panel.description;
+			wrapper.appendChild(desc);
+		}
 		wrapper.appendChild(target);
 		container.appendChild(wrapper);
 		panel.render(target);
@@ -444,11 +460,16 @@ function handleResult(result, key) {
 		metrics: result.metrics || {},
 		students: dataset.students,
 	});
-	buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
+	
+	if (key === "a_star") {
+		buildAStarCards(assignments);
+	} else {
+		buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
+	}
 	renderHeatmapPanels(
 		assignments,
 		dataset.students,
-		getScheduleDays(),
+		getScheduleDays(dataset, assignments),
 		result.metrics?.room_daily_load || []
 	);
 	document.getElementById("export-controls").hidden = false;
@@ -522,10 +543,11 @@ async function init() {
 		heatmapSelector.addEventListener("change", (e) => {
 			heatmapType = e.target.value;
 			if (latestSolution) {
+				const days = getScheduleDays(latestSolution.dataset, latestSolution.assignments);
 				renderHeatmapPanels(
 					latestSolution.assignments,
 					latestSolution.dataset.students,
-					getScheduleDays(),
+					days,
 					latestSolution.result.metrics?.room_daily_load || []
 				);
 			}

@@ -309,7 +309,7 @@ def _run_algorithm_by_key(key: str, request: ScheduleRequest, tracker: ProgressT
         if key == "a_star":
             scheduler = AStarScheduler(exam_students, room_timeslot, [c.enrollment for c in request.courses])
             assignment, fitness, nodes, elapsed = scheduler.run(
-                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec, default=60.0),
                 progress_callback=tracker.report_progress,
             )
             result = _format_result(
@@ -517,7 +517,7 @@ async def run_astar_algorithm(request: ScheduleRequest):
             enrollments = [c.enrollment for c in request.courses]
             scheduler = AStarScheduler(exam_students, room_timeslot, enrollments)
             assignment, fitness, nodes, elapsed = scheduler.run(
-                time_limit_sec=_resolve_time_limit(request.time_limit_sec),
+                time_limit_sec=_resolve_time_limit(request.time_limit_sec, default=60.0),
                 progress_callback=tracker.report_progress,
             )
 
