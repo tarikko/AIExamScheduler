@@ -342,6 +342,15 @@
   border-radius: 0;
 }
 
+[data-theme="neo-brutalism"] .heatmap-desc {
+  border-left: 4px solid #d32f2f;
+  background: #fffde7;
+  color: #333;
+  font-weight: 600;
+  font-style: normal;
+  border-radius: 0;
+}
+
 /* ─── Notes ───────────────────────────────────────────────────────────── */
 
 [data-theme="neo-brutalism"] .note-card {
