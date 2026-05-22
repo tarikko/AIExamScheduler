@@ -2,6 +2,7 @@ import {
 	renderDataOverview,
 	renderSchedule,
 	buildMasterGrid,
+	buildAStarCards,
 	buildHeatmap,
 	buildHeatmapByStudentsStress,
 	buildHeatmapByNumberOfExamsPerDay,
@@ -459,7 +460,12 @@ function handleResult(result, key) {
 		metrics: result.metrics || {},
 		students: dataset.students,
 	});
-	buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
+	
+	if (key === "a_star") {
+		buildAStarCards(assignments);
+	} else {
+		buildMasterGrid(assignments, dataset.rooms, dataset.timeSlots);
+	}
 	renderHeatmapPanels(
 		assignments,
 		dataset.students,

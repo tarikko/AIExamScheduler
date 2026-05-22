@@ -65,6 +65,10 @@ export function renderSchedule(assignments, meta) {
 
 export function buildMasterGrid(assignments, rooms, timeSlots) {
 	const table = document.getElementById("master-grid");
+	table.style.display = "table";
+	const aStarView = document.getElementById("astar-view");
+	if (aStarView) aStarView.style.display = "none";
+	
 	table.innerHTML = "";
 
 	if (!rooms.length || !timeSlots.length) {
@@ -108,6 +112,75 @@ export function buildMasterGrid(assignments, rooms, timeSlots) {
 				cell.title = "Room capacity violation";
 			}
 		});
+	});
+}
+
+export function buildAStarCards(assignments) {
+	const table = document.getElementById("master-grid");
+	const container = table.parentNode;
+	
+	let aStarView = document.getElementById("astar-view");
+	if (!aStarView) {
+		aStarView = document.createElement("div");
+		aStarView.id = "astar-view";
+		
+		const searchBar = document.createElement("input");
+		searchBar.type = "text";
+		searchBar.id = "astar-search";
+		searchBar.placeholder = "Search exam by name, code, or room...";
+		searchBar.style.cssText = "width: 100%; padding: 12px; margin-bottom: 20px; font-size: 16px; border: 2px solid var(--border); border-radius: 4px; box-sizing: border-box;";
+		
+		const cardsContainer = document.createElement("div");
+		cardsContainer.id = "astar-cards";
+		cardsContainer.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;";
+		
+		aStarView.appendChild(searchBar);
+		aStarView.appendChild(cardsContainer);
+		container.insertBefore(aStarView, table);
+		
+		searchBar.addEventListener("input", (e) => {
+			const query = e.target.value.toLowerCase();
+			const cards = document.querySelectorAll(".astar-card");
+			cards.forEach(card => {
+				const text = card.textContent.toLowerCase();
+				if (text.includes(query)) {
+					card.style.display = "block";
+				} else {
+					card.style.display = "none";
+				}
+			});
+		});
+	}
+	
+	// Hide master-grid, show astar-view
+	table.style.display = "none";
+	aStarView.style.display = "block";
+	document.getElementById("astar-search").value = "";
+	
+	const cardsContainer = document.getElementById("astar-cards");
+	cardsContainer.innerHTML = "";
+	
+	// Sort assignments chronologically
+	const sorted = [...assignments].sort((a, b) => a.slot.label.localeCompare(b.slot.label));
+	
+	sorted.forEach(match => {
+		const card = document.createElement("div");
+		card.className = "astar-card data-card";
+		card.style.cssText = "text-align: left; padding: 16px; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); border: 2px solid var(--border);";
+		card.innerHTML = `
+			<h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.1rem;">${match.course.name}</h3>
+			<div style="font-size: 0.9rem; line-height: 1.5;">
+				<div><strong>Code:</strong> ${match.course.code}</div>
+				<div><strong>Time:</strong> <span style="background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px;">${match.slot.label}</span></div>
+				<div><strong>Duration:</strong> ${match.course.durationMins} min</div>
+				<div><strong>Room:</strong> ${match.room.name} (${match.room.capacity} seats)</div>
+				<div><strong>Students:</strong> ${match.course.enrollment}</div>
+			</div>
+		`;
+		if (match.course.enrollment > match.room.capacity) {
+			card.style.borderColor = "var(--danger)";
+		}
+		cardsContainer.appendChild(card);
 	});
 }
 

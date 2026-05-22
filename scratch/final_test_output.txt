@@ -1,0 +1,145 @@
+Testing A* (schedule class, final2 branch) on 24 benchmarks
+Timeout: 30s per benchmark
+
+▶ ENSIA_S1... ✗ 17/29 assigned in 0.17s  [Partial Solution]
+    FMAT                                2026-06-01   09:00-11:00  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+    DSA1                                2026-06-02   09:00-11:00  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+    DSYS                                2026-06-03   09:00-10:30  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+▶ ENSIA_S2... ✗ 15/26 assigned in 0.11s  [Partial Solution]
+    OOP                                 2026-06-01   09:00-11:00  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+    LINUX                               2026-06-02   09:00-10:30  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+    LINALG                              2026-06-03   09:00-11:00  rooms: AMPHI_1_2_3, AMPHI_4_5_6
+▶ melbourne_i_synthetic... ✗ 44/521 assigned in 25.08s  [Partial Solution]
+    MELBOURNE_I_SYNTHETIC_0344          2026-06-01   09:00-11:00  rooms: BaseRoom_018, BaseRoom_019
+    MELBOURNE_I_SYNTHETIC_0105          2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    MELBOURNE_I_SYNTHETIC_0252          2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ melbourne_ii_synthetic... ✗ 53/526 assigned in 25.03s  [Partial Solution]
+    MELBOURNE_II_SYNTHETIC_0112         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    MELBOURNE_II_SYNTHETIC_0526         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    MELBOURNE_II_SYNTHETIC_0368         2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ nottingham_a_synthetic... ✗ 125/800 assigned in 25.01s  [Partial Solution]
+    NOTTINGHAM_A_SYNTHETIC_0720         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    NOTTINGHAM_A_SYNTHETIC_0670         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    NOTTINGHAM_A_SYNTHETIC_0761         2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ nottingham_b_synthetic... ✗ 131/800 assigned in 25.13s  [Partial Solution]
+    NOTTINGHAM_B_SYNTHETIC_0085         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    NOTTINGHAM_B_SYNTHETIC_0061         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    NOTTINGHAM_B_SYNTHETIC_0442         2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ random_sp_06_synthetic... ✓ 80/80 assigned in 0.15s  [Success!]
+    RANDOM_SP_06_SYNTHETIC_0044         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    RANDOM_SP_06_SYNTHETIC_0008         2026-06-01   09:00-11:00  rooms: BaseRoom_017
+    RANDOM_SP_06_SYNTHETIC_0070         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+▶ random_sp_11_synthetic... ✓ 81/81 assigned in 0.15s  [Success!]
+    RANDOM_SP_11_SYNTHETIC_0055         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    RANDOM_SP_11_SYNTHETIC_0025         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    RANDOM_SP_11_SYNTHETIC_0039         2026-06-01   09:00-11:00  rooms: BaseRoom_017
+▶ random_sp_16_synthetic... ✓ 82/82 assigned in 0.30s  [Success!]
+    RANDOM_SP_16_SYNTHETIC_0081         2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    RANDOM_SP_16_SYNTHETIC_0006         2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    RANDOM_SP_16_SYNTHETIC_0057         2026-06-02   09:00-11:00  rooms: BaseRoom_017
+▶ random_sp_31_synthetic... ✓ 85/85 assigned in 0.47s  [Success!]
+    RANDOM_SP_31_SYNTHETIC_0043         2026-06-01   09:00-11:00  rooms: BaseRoom_011
+    RANDOM_SP_31_SYNTHETIC_0048         2026-06-02   09:00-11:00  rooms: BaseRoom_011
+    RANDOM_SP_31_SYNTHETIC_0065         2026-06-03   09:00-11:00  rooms: BaseRoom_011
+▶ random_sp_36_synthetic... ✓ 86/86 assigned in 0.62s  [Success!]
+    RANDOM_SP_36_SYNTHETIC_0019         2026-06-01   09:00-11:00  rooms: BaseRoom_011
+    RANDOM_SP_36_SYNTHETIC_0045         2026-06-02   09:00-11:00  rooms: BaseRoom_011
+    RANDOM_SP_36_SYNTHETIC_0012         2026-06-03   09:00-11:00  rooms: BaseRoom_011
+▶ random_sp_41_synthetic... ✓ 87/87 assigned in 0.65s  [Success!]
+    RANDOM_SP_41_SYNTHETIC_0067         2026-06-01   09:00-11:00  rooms: BaseRoom_009
+    RANDOM_SP_41_SYNTHETIC_0038         2026-06-02   09:00-11:00  rooms: BaseRoom_009
+    RANDOM_SP_41_SYNTHETIC_0057         2026-06-03   09:00-11:00  rooms: BaseRoom_009
+▶ random_sp_46_synthetic... ✓ 88/88 assigned in 0.84s  [Success!]
+    RANDOM_SP_46_SYNTHETIC_0077         2026-06-01   09:00-11:00  rooms: BaseRoom_007, BaseRoom_006
+    RANDOM_SP_46_SYNTHETIC_0032         2026-06-02   09:00-11:00  rooms: BaseRoom_007
+    RANDOM_SP_46_SYNTHETIC_0023         2026-06-03   09:00-11:00  rooms: BaseRoom_007
+▶ toronto_car91... ✗ 59/682 assigned in 25.19s  [Partial Solution]
+    TORONTO_CAR91_0299                  2026-06-01   09:00-11:00  rooms: BaseRoom_018, BaseRoom_019
+    TORONTO_CAR91_0520                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_CAR91_0567                  2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_car92... ✗ 57/543 assigned in 25.74s  [Partial Solution]
+    TORONTO_CAR92_0204                  2026-06-01   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_CAR92_0291                  2026-06-02   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_CAR92_0236                  2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_ear83... ✓ 190/190 assigned in 21.24s  [Success!]
+    TORONTO_EAR83_0020                  2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_EAR83_0024                  2026-06-01   09:00-11:00  rooms: BaseRoom_019
+    TORONTO_EAR83_0137                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_hec92... ✓ 81/81 assigned in 8.14s  [Success!]
+    TORONTO_HEC92_0013                  2026-06-01   09:00-11:00  rooms: BaseRoom_013, BaseRoom_012, BaseRoom_011
+    TORONTO_HEC92_0004                  2026-06-02   09:00-11:00  rooms: BaseRoom_013, BaseRoom_012, BaseRoom_011
+    TORONTO_HEC92_0011                  2026-06-03   09:00-11:00  rooms: BaseRoom_013, BaseRoom_012
+▶ toronto_kfu93... ✗ 100/461 assigned in 25.43s  [Partial Solution]
+    TORONTO_KFU93_0315                  2026-06-01   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_KFU93_0392                  2026-06-02   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_KFU93_0207                  2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_rye92... ✗ 79/486 assigned in 25.31s  [Partial Solution]
+    TORONTO_RYE92_0355                  2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_RYE92_0001                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_RYE92_0157                  2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_sta83... ✓ 139/139 assigned in 6.14s  [Success!]
+    TORONTO_STA83_0072                  2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_STA83_0003                  2026-06-01   09:00-11:00  rooms: BaseRoom_017
+    TORONTO_STA83_0071                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_tre92... ✗ 169/261 assigned in 25.18s  [Partial Solution]
+    TORONTO_TRE92_0011                  2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_TRE92_0215                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_TRE92_0214                  2026-06-02   09:00-11:00  rooms: BaseRoom_017
+▶ toronto_uta92... ✗ 59/622 assigned in 25.37s  [Partial Solution]
+    TORONTO_UTA92_0022                  2026-06-01   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_UTA92_0574                  2026-06-02   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+    TORONTO_UTA92_0098                  2026-06-03   09:00-11:00  rooms: BaseRoom_018, BaseRoom_017
+▶ toronto_ute92... ✓ 184/184 assigned in 17.88s  [Success!]
+    TORONTO_UTE92_0136                  2026-06-01   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_UTE92_0130                  2026-06-02   09:00-11:00  rooms: BaseRoom_018
+    TORONTO_UTE92_0067                  2026-06-03   09:00-11:00  rooms: BaseRoom_018
+▶ toronto_yor83... ✓ 181/181 assigned in 12.44s  [Success!]
+    TORONTO_YOR83_0040                  2026-06-01   09:00-11:00  rooms: BaseRoom_014
+    TORONTO_YOR83_0102                  2026-06-02   09:00-11:00  rooms: BaseRoom_014
+    TORONTO_YOR83_0043                  2026-06-01   09:00-11:00  rooms: BaseRoom_013
+
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Benchmark                      Exams Rooms Days Students Assigned Unasgn     Time Result              
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✗ ENSIA_S1                        29     3    5      780       17     12     0.2s Partial Solution    
+✗ ENSIA_S2                        26     3    5      780       15     11     0.1s Partial Solution    
+✗ melbourne_i_synthetic          521    21   27    20656       44    477    25.1s Partial Solution    
+✗ melbourne_ii_synthetic         526    22   28    19816       53    473    25.0s Partial Solution    
+✗ nottingham_a_synthetic         800    42   19     7896      125    675    25.0s Partial Solution    
+✗ nottingham_b_synthetic         800    46   19     7896      131    669    25.1s Partial Solution    
+✓ random_sp_06_synthetic          80    33    3      100       80      0     0.2s Success!            
+✓ random_sp_11_synthetic          81    25    3      150       81      0     0.1s Success!            
+✓ random_sp_16_synthetic          82    25    5      200       82      0     0.3s Success!            
+✓ random_sp_31_synthetic          85    11    6      350       85      0     0.5s Success!            
+✓ random_sp_36_synthetic          86    11    7      400       86      0     0.6s Success!            
+✓ random_sp_41_synthetic          87     9    7      450       87      0     0.7s Success!            
+✓ random_sp_46_synthetic          88     7    8      500       88      0     0.8s Success!            
+✗ toronto_car91                  682    64   17    16925       59    623    25.2s Partial Solution    
+✗ toronto_car92                  543    51   15    18419       57    486    25.7s Partial Solution    
+✓ toronto_ear83                  190    20   12     1125      190      0    21.2s Success!            
+✓ toronto_hec92                   81    13   10     2823       81      0     8.1s Success!            
+✗ toronto_kfu93                  461    83   10     5349      100    361    25.4s Partial Solution    
+✗ toronto_rye92                  486    59   12    11483       79    407    25.3s Partial Solution    
+✓ toronto_sta83                  139    21    7      611      139      0     6.1s Success!            
+✗ toronto_tre92                  261    31   12     4360      169     92    25.2s Partial Solution    
+✗ toronto_uta92                  622    67   16    21266       59    563    25.4s Partial Solution    
+✓ toronto_ute92                  184    38    6     2749      184      0    17.9s Success!            
+✓ toronto_yor83                  181    14   11      941      181      0    12.4s Success!            
+
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+SUMMARY: 12 solved | 0 no solution | 0 timed out | 0 errors
+Total time: 321.8s
+
+✓ Solved benchmarks:
+    random_sp_06_synthetic: 80/80 in 0.15s
+    random_sp_11_synthetic: 81/81 in 0.15s
+    random_sp_16_synthetic: 82/82 in 0.30s
+    random_sp_31_synthetic: 85/85 in 0.47s
+    random_sp_36_synthetic: 86/86 in 0.62s
+    random_sp_41_synthetic: 87/87 in 0.65s
+    random_sp_46_synthetic: 88/88 in 0.84s
+    toronto_ear83: 190/190 in 21.24s
+    toronto_hec92: 81/81 in 8.14s
+    toronto_sta83: 139/139 in 6.14s
+    toronto_ute92: 184/184 in 17.88s
+    toronto_yor83: 181/181 in 12.44s
