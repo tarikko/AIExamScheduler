@@ -33,7 +33,12 @@ class Chromosome:
         for i in range(self.size):
             r = random.random()
             if r <= self.mutation:
-                self.dna[i] = random.choice(self.domain[i])
+                current_values = set(self.dna[:i] + self.dna[i + 1:])
+                possible_values_pool = list(set(self.domain[i]) - current_values)
+                if not possible_values_pool:
+                    continue
+                mutation_value = random.choice(possible_values_pool)
+                self.dna[i] = mutation_value
 
 
 class GeneticAlgorithm:
@@ -51,6 +56,12 @@ class GeneticAlgorithm:
                 m = len(self.exams[i].students & self.exams[j].students)
                 if m > 0:
                     self.exam_neighbours[i].append((j,m))
+
+        self.exam_overlap = [[0] * n for _ in range(n)]
+        for i in range(n):
+            for j, overlap in self.exam_neighbours[i]:
+                self.exam_overlap[i][j] = overlap
+                self.exam_overlap[j][i] = overlap
 
         # the start time for (room,timeslot) pair
         self.start_time = [timeslot.to_epoch() for room,timeslot in self.room_timeslot]
@@ -75,6 +86,76 @@ class GeneticAlgorithm:
                 domain.append(domain_i)
             # creating the popualation list
             self.population = [Chromosome(size=num_exams,domain=domain,mutation_probability=1 / num_exams) for _ in range(population_size)]
+
+    def _repair_chromosome(self, chromo: Chromosome, passes: int = 2) -> None:
+        for _ in range(passes):
+            changed = False
+            used_values = set()
+            conflict_counts = [0] * chromo.size
+
+            for i in range(chromo.size):
+                gene_i = chromo.dna[i]
+                if gene_i is None:
+                    continue
+                for j, _ in self.exam_neighbours[i]:
+                    if j <= i:
+                        continue
+                    gene_j = chromo.dna[j]
+                    if gene_j is None:
+                        continue
+
+                    if max(self.start_time[gene_i], self.start_time[gene_j]) < min(self.end_time[i][gene_i], self.end_time[j][gene_j]):
+                        overlap = self.exam_overlap[i][j]
+                        conflict_counts[i] += overlap
+                        conflict_counts[j] += overlap
+
+            for i in range(chromo.size):
+                current_gene = chromo.dna[i]
+                if current_gene is None:
+                    continue
+
+                if conflict_counts[i] == 0 and current_gene not in used_values:
+                    used_values.add(current_gene)
+                    continue
+
+                candidate_pool = [current_gene]
+                for gene in chromo.domain[i]:
+                    if gene != current_gene and gene not in used_values:
+                        candidate_pool.append(gene)
+                        if len(candidate_pool) >= 6:
+                            break
+
+                best_gene = current_gene
+                best_cost = conflict_counts[i]
+
+                for candidate in candidate_pool:
+                    if candidate in used_values and candidate != current_gene:
+                        continue
+
+                    candidate_cost = 0
+                    candidate_start = self.start_time[candidate]
+                    candidate_end = self.end_time[i][candidate]
+                    for j, overlap in self.exam_neighbours[i]:
+                        other_gene = chromo.dna[j]
+                        if other_gene is None or j == i:
+                            continue
+                        if max(candidate_start, self.start_time[other_gene]) < min(candidate_end, self.end_time[j][other_gene]):
+                            candidate_cost += overlap
+
+                    if candidate_cost < best_cost:
+                        best_cost = candidate_cost
+                        best_gene = candidate
+
+                if best_gene != current_gene:
+                    chromo.dna[i] = best_gene
+                    changed = True
+
+                used_values.add(chromo.dna[i])
+
+            if not changed:
+                break
+
+        chromo.used_values = set(chromo.dna)
 
     def _pmx_child(self,primary,secondary,start,end):
         # PMX helper to keep relative order and reduce duplicates
@@ -118,14 +199,16 @@ class GeneticAlgorithm:
 
         child1.mutate()
         child2.mutate()
+        self._repair_chromosome(child1)
+        self._repair_chromosome(child2)
         return child1 , child2
 
     def fitness(self,chromo: Chromosome):
         # weights
         hard_duplicate_weight = 20.0
         hard_capacity_weight = 20.0
-        hard_student_conflict_weight = 10.0
-        hard_room_conflict_weight = 10.0
+        hard_student_conflict_weight = 300.0
+        hard_room_conflict_weight = 200.0
         soft_consecutive_exams_weight = 3
         soft_late_exams_weight = 0.5
         soft_efficient_allocation_weight = 2.0
